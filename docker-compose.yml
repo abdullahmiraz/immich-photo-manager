@@ -19,7 +19,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
 
     ports:
-      - '2283:2283'
+      - "2283:2283"
     depends_on:
       - redis
       - database
@@ -29,11 +29,16 @@ services:
 
   immich-machine-learning:
     container_name: immich_machine_learning
-    image: ghcr.io/immich-app/immich-machine-learning:release
+    image: ghcr.io/immich-app/immich-machine-learning:release-openvino
     env_file:
       - .env
+    devices:
+      - /dev/dxg:/dev/dxg
     volumes:
       - model-cache:/cache
+      - /usr/lib/wsl/lib:/usr/lib/wsl/lib
+    environment:
+      - LD_LIBRARY_PATH=/usr/lib/wsl/lib
     restart: always
     healthcheck:
       disable: false
@@ -52,7 +57,7 @@ services:
       POSTGRES_PASSWORD: immich_secret_password_123
       POSTGRES_USER: postgres
       POSTGRES_DB: immich
-      POSTGRES_INITDB_ARGS: '--data-checksums'
+      POSTGRES_INITDB_ARGS: "--data-checksums"
     volumes:
       - pgdata:/var/lib/postgresql/data
     shm_size: 128mb
