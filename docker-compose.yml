@@ -32,7 +32,7 @@ services:
     restart: unless-stopped
     stop_grace_period: 2m
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:2283/api/health || exit 1"]
+      test: ["CMD-SHELL", "node -e \"const http = require('http'); const req = http.get('http://localhost:2283/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on('error', () => process.exit(1));\""]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -50,7 +50,7 @@ services:
     restart: unless-stopped
     stop_grace_period: 2m
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3003/health || exit 1"]
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:3003/health')\" || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -84,7 +84,7 @@ services:
       POSTGRES_INITDB_ARGS: "--data-checksums"
     volumes:
       - pgdata:/var/lib/postgresql/data
-    shm_size: 256mb
+shm_size: 256mb
     restart: unless-stopped
     stop_grace_period: 1m
     healthcheck:
