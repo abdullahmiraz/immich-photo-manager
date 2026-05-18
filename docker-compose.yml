@@ -32,7 +32,10 @@ services:
     restart: unless-stopped
     stop_grace_period: 2m
     healthcheck:
-      disable: false
+      test: ["CMD-SHELL", "curl -f http://localhost:2283/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   immich-machine-learning:
     container_name: immich_machine_learning
@@ -41,19 +44,16 @@ services:
       - .env
     cap_add:
       - SYS_NICE
-    # WSL2 GPU passthrough (DirectX /dev/dxg). Uses Intel OpenVINO stack — does NOT drive AMD RX 580.
     # For AMD ROCm test: docker compose -f docker-compose.yml -f docker-compose.gpu-test.yml up -d --force-recreate immich-machine-learning
-    devices:
-      - /dev/dxg:/dev/dxg
     volumes:
       - model-cache:/cache
-      - /usr/lib/wsl/lib:/usr/lib/wsl/lib:ro
-    environment:
-      LD_LIBRARY_PATH: /usr/lib/wsl/lib
     restart: unless-stopped
     stop_grace_period: 2m
     healthcheck:
-      disable: false
+      test: ["CMD-SHELL", "curl -f http://localhost:3003/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     container_name: immich_redis
@@ -88,7 +88,10 @@ services:
     restart: unless-stopped
     stop_grace_period: 1m
     healthcheck:
-      disable: false
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE_NAME} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   model-cache:
