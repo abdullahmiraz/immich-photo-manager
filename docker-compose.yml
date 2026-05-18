@@ -1,6 +1,5 @@
 # Immich tuned for Intel Xeon E5-2670 v3 (12C/24T) on Docker Desktop Windows.
-# ML: OpenVINO on CPU (Intel-optimized). GPU (RX 580) not used by Immich on Windows Docker.
-# config/immich.json only sets library watch (jobs/ffmpeg editable in Admin UI). Docs: https://docs.immich.app/install/docker-compose
+# ML: ROCm on AMD GPU (RX 580) or OpenVINO fallback.
 name: immich
 
 services:
@@ -21,7 +20,6 @@ services:
     volumes:
       - ${UPLOAD_LOCATION}:/data
       - ${EXTERNAL_LIBRARY_PATH}:/photos-import:ro
-      # - ./config/immich.json:${IMMICH_CONFIG_FILE}:ro
     ports:
       - "2283:2283"
     depends_on:
@@ -32,7 +30,11 @@ services:
     restart: unless-stopped
     stop_grace_period: 2m
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"const http = require('http'); const req = http.get('http://localhost:2283/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on('error', () => process.exit(1));\""]
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "const http = require(''http''); const req = http.get(''http://localhost:2283/api/health'', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on(''error'', () => process.exit(1));"',
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -50,7 +52,11 @@ services:
     restart: unless-stopped
     stop_grace_period: 2m
     healthcheck:
-      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:3003/health')\" || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          'python3 -c "import urllib.request; urllib.request.urlopen(''http://localhost:3003/health'')" || exit 1',
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -84,11 +90,15 @@ services:
       POSTGRES_INITDB_ARGS: "--data-checksums"
     volumes:
       - pgdata:/var/lib/postgresql/data
-shm_size: 256mb
+    shm_size: 256mb
     restart: unless-stopped
     stop_grace_period: 1m
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE_NAME} || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE_NAME} || exit 1",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
