@@ -1,0 +1,37 @@
+{
+  "ffmpeg": {
+    "accel": "disabled",
+    "accelDecode": false,
+    "transcode": "required"
+  },
+  "job": {
+    "backgroundTask": { "concurrency": 3 },
+    "faceDetection": { "concurrency": 1 },
+    "library": { "concurrency": 2 },
+    "metadataExtraction": { "concurrency": 3 },
+    "ocr": { "concurrency": 1 },
+    "search": { "concurrency": 3 },
+    "sidecar": { "concurrency": 2 },
+    "smartSearch": { "concurrency": 1 },
+    "thumbnailGeneration": { "concurrency": 2 },
+    "videoConversion": { "concurrency": 1 }
+  },
+  "library": {
+    "scan": {
+      "cronExpression": "0 3 * * *",
+      "enabled": true
+    },
+    "watch": {
+      "enabled": true
+    }
+  },
+  "machineLearning": {
+    "availabilityChecks": {
+      "enabled": true,
+      "interval": 30000,
+      "timeout": 5000
+    },
+    "enabled": true,
+    "urls": ["http://immich-machine-learning:3003"]
+  }
+}

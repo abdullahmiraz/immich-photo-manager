@@ -17,15 +17,19 @@ services:
       - ./library:/data
       - D:/code/duplicate image remover/immich/library/upload/external:/photos-import:ro
       - /etc/localtime:/etc/localtime:ro
-
     ports:
       - "2283:2283"
     depends_on:
-      - redis
-      - database
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: always
     healthcheck:
-      disable: false
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/server-info/ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
 
   immich-machine-learning:
     container_name: immich_machine_learning
@@ -41,13 +45,20 @@ services:
       - LD_LIBRARY_PATH=/usr/lib/wsl/lib
     restart: always
     healthcheck:
-      disable: false
+      test: ["CMD", "curl", "-f", "http://localhost:3003/ms-health-check"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s  # Prevents container health flapping during intensive duplicate checks
 
   redis:
     container_name: immich_redis
     image: docker.io/valkey/valkey:9@sha256:3b55fbaa0cd93cf0d9d961f405e4dfcc70efe325e2d84da207a0a8e6d8fde4f9
     healthcheck:
-      test: redis-cli ping || exit 1
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: always
 
   database:
@@ -60,10 +71,13 @@ services:
       POSTGRES_INITDB_ARGS: "--data-checksums"
     volumes:
       - pgdata:/var/lib/postgresql/data
-    shm_size: 128mb
+    shm_size: 512mb  # Expanded to prevent crashes during large vector duplicate queries
     restart: always
     healthcheck:
-      disable: false
+      test: ["CMD-SHELL", "pg_isready --dbname=\"$$POSTGRES_DB\" --username=\"$$POSTGRES_USER\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   model-cache:
