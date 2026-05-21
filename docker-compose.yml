@@ -14,6 +14,9 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_DATABASE_NAME: ${DB_DATABASE_NAME}
       REDIS_HOSTNAME: redis
+      CPU_CORES: ${CPU_CORES}
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "1000"
     volumes:
       - ${UPLOAD_LOCATION}:/data
       - ${EXTERNAL_LIBRARY_PATH}:/photos-import:ro
@@ -27,29 +30,52 @@ services:
     restart: unless-stopped
     stop_grace_period: 2m
     healthcheck:
-      disable: false
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "const http = require(''http''); const req = http.get(''http://localhost:2283/api/health'', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on(''error'', () => process.exit(1));"',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   immich-machine-learning:
     container_name: immich_machine_learning
-    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
+    image: ghcr.io/immich-app/immich-machine-learning:release-openvino
     env_file:
       - .env
+    devices:
+      - /dev/dxg:/dev/dxg
     volumes:
       - model-cache:/cache
     restart: unless-stopped
     stop_grace_period: 2m
     healthcheck:
-      disable: false
+      test:
+        [
+          "CMD-SHELL",
+          'python3 -c "import urllib.request; urllib.request.urlopen(''http://localhost:3003/health'')" || exit 1',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     container_name: immich_redis
     image: docker.io/valkey/valkey:9@sha256:3b55fbaa0cd93cf0d9d961f405e4dfcc70efe325e2d84da207a0a8e6d8fde4f9
+    command: >
+      valkey-server
+      --save 300 10
+      --save 60 1000
+      --appendonly yes
+      --appendfsync everysec
+    volumes:
+      - redisdata:/data
+    restart: unless-stopped
+    stop_grace_period: 30s
     healthcheck:
       test: redis-cli ping || exit 1
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
+    restart: always
 
   database:
     container_name: immich_postgres
@@ -61,11 +87,19 @@ services:
       POSTGRES_INITDB_ARGS: "--data-checksums"
     volumes:
       - pgdata:/var/lib/postgresql/data
-    shm_size: 512mb
-    restart: unless-stopped
+    shm_size: 128mb
+    restart: always
     healthcheck:
-      disable: false
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE_NAME} || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   model-cache:
   pgdata:
+  redisdata:
