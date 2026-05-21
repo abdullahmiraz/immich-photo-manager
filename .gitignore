@@ -1,7 +1,20 @@
-library
-library/*
+# User data & runtime
+library/
+dedup-data/
+postgres/
+pgdata/
 
+# Secrets
+.env
+.env.local
+
+# Tooling
 *.aider
-*.aider/*
+.aider/
 .aider/*
-*.aider.*
+.aider.input.history
+
+# Deprecated / junk (do not re-add)
+install.cmd
+docker-compose.gpu-test.yml
+config/

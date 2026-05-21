@@ -1,4 +1,4 @@
-# Immich — simple Docker Compose (UI controls all settings; no config file).
+# Immich — Docker Desktop (Windows). All settings via Admin UI (no config file).
 # https://docs.immich.app/install/docker-compose
 name: immich
 
@@ -14,7 +14,6 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_DATABASE_NAME: ${DB_DATABASE_NAME}
       REDIS_HOSTNAME: redis
-      CPU_CORES: ${CPU_CORES}
       CHOKIDAR_USEPOLLING: "true"
       CHOKIDAR_INTERVAL: "1000"
     volumes:
@@ -30,35 +29,19 @@ services:
     restart: unless-stopped
     stop_grace_period: 2m
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          'node -e "const http = require(''http''); const req = http.get(''http://localhost:2283/api/health'', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on(''error'', () => process.exit(1));"',
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      disable: false
 
   immich-machine-learning:
     container_name: immich_machine_learning
-    image: ghcr.io/immich-app/immich-machine-learning:release-openvino
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
     env_file:
       - .env
-    devices:
-      - /dev/dxg:/dev/dxg
     volumes:
       - model-cache:/cache
     restart: unless-stopped
     stop_grace_period: 2m
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          'python3 -c "import urllib.request; urllib.request.urlopen(''http://localhost:3003/health'')" || exit 1',
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      disable: false
 
   redis:
     container_name: immich_redis
@@ -72,10 +55,11 @@ services:
     volumes:
       - redisdata:/data
     restart: unless-stopped
-    stop_grace_period: 30s
     healthcheck:
       test: redis-cli ping || exit 1
-    restart: always
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   database:
     container_name: immich_postgres
@@ -87,17 +71,47 @@ services:
       POSTGRES_INITDB_ARGS: "--data-checksums"
     volumes:
       - pgdata:/var/lib/postgresql/data
-    shm_size: 128mb
-    restart: always
+    shm_size: 512mb
+    restart: unless-stopped
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE_NAME} || exit 1",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      disable: false
+    networks:
+      - default
+      - immich-deduper
+
+  # https://github.com/RazgrizHsu/immich-deduper — same-host setup
+  immich-deduper:
+    image: ${DEDUP_IMAGE:-razgrizhsu/immich-deduper:latest}
+    container_name: immich_deduper
+    env_file:
+      - .env
+    ports:
+      - "${DEDUP_PORT:-8086}:8086"
+    volumes:
+      - ${DEDUP_DATA}:/app/data
+      - ${DEDUP_DATA}/cache:/root/.cache/torch/
+      - ${UPLOAD_LOCATION}:/immich:ro
+    depends_on:
+      qdrant:
+        condition: service_started
+      database:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - immich-deduper
+
+  qdrant:
+    container_name: immich_deduper_qdrant
+    image: qdrant/qdrant:v1.16.3
+    restart: unless-stopped
+    volumes:
+      - ${DEDUP_DATA}/qdrant:/qdrant/storage
+    networks:
+      - immich-deduper
+
+networks:
+  immich-deduper:
+    external: true
 
 volumes:
   model-cache:
