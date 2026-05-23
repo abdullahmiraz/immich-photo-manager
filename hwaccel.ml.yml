@@ -1,0 +1,49 @@
+# Hardware-accelerated ML — https://docs.immich.app/features/ml-hardware-acceleration
+# AMD RX 580 on Windows Docker Desktop: use rocm-wsl (extends standard rocm with WSL /dev/dxg).
+
+services:
+  cpu: {}
+
+  cuda:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  rocm:
+    group_add:
+      - video
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/kfd:/dev/kfd
+
+  # AMD on Docker Desktop (WSL2): /dev/dxg + libdxcore; run scripts/enable-wsl-gpu.ps1 first
+  rocm-wsl:
+    group_add:
+      - video
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/dxg:/dev/dxg
+    volumes:
+      - /usr/lib/wsl/lib/libdxcore.so:/usr/lib/libdxcore.so:ro
+
+  openvino:
+    device_cgroup_rules:
+      - 'c 189:* rmw'
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb
+
+  openvino-wsl:
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/dxg:/dev/dxg
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb
+      - /usr/lib/wsl:/usr/lib/wsl
+    group_add:
+      - video

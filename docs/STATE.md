@@ -31,10 +31,12 @@ Last updated: 2026-05-20
 | Deduper crash on start | Missing `QDRANT_URL` | `QDRANT_URL=http://qdrant:6333` in `.env` |
 | Duplicates page freezes | ML marked unhealthy under load | Lower ML threads; no config-file job locks |
 
-## Not supported (documented attempts)
+## GPU (experimental, 2026-05-23)
 
-- **AMD RX 580 GPU** for Immich ML on Docker Desktop Windows (no `/dev/dri`, no DirectML image).
-- **ROCm image** ~30GB pull; incomplete on this host.
+- **AMD RX 580** on Windows: `docker-compose.gpu.yml` + `hwaccel.ml.yml` (`rocm-wsl`), `scripts/enable-wsl-gpu.ps1`, `scripts/start-gpu-stack.ps1`
+- WSL after `modprobe`: `/dev/dri` + `/dev/dxg` present; **no** `/dev/kfd` (use dxg path, not native Linux ROCm)
+- **Polaris / gfx803** may need `HSA_OVERRIDE_GFX_VERSION` in `.env`; not officially supported — verify ML logs for GPU provider
+- Fallback: `docker compose up -d --force-recreate immich-machine-learning` (CPU `release` image)
 
 ## Data locations (gitignored)
 

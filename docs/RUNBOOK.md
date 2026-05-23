@@ -276,6 +276,67 @@ Official Immich env docs: https://docs.immich.app/install/environment-variables
 
 ---
 
+## Faster Docker image pulls
+
+Large images (e.g. `immich-machine-learning:release-rocm`) download **one layer per connection**. Docker defaults to **3** parallel downloads.
+
+**One-time (recommended):**
+
+```powershell
+.\scripts\configure-docker-fast-pulls.ps1
+```
+
+This sets `max-concurrent-downloads: 10` in `%USERPROFILE%\.docker\daemon.json` and restarts Docker Desktop.
+
+**Pull ROCm ML image with auto-retry** (resumes partial layers after a failed pull):
+
+```powershell
+.\scripts\pull-ml-rocm.ps1
+```
+
+**Also helps:** Docker Desktop → Settings → Resources → Advanced → **Disk image location** on `D:\` (faster write than a full C: drive).
+
+---
+
+## AMD GPU (RX 580) — experimental
+
+Windows Docker Desktop only exposes the GPU via WSL2 (`/dev/dxg`). After `modprobe`, `/dev/dri` appears. Immich uses the **ROCm** ML image with a **rocm-wsl** device profile.
+
+**Prerequisites**
+
+- Latest [AMD Adrenalin](https://www.amd.com/en/support) drivers on Windows
+- Docker Desktop → Settings → Resources → **Use the WSL 2 based engine**; enable GPU if shown
+- **~35 GB free** on D: for first `release-rocm` pull
+- Re-run `.\scripts\enable-wsl-gpu.ps1` after each Windows reboot
+
+**Start with GPU**
+
+```powershell
+.\scripts\start-gpu-stack.ps1
+```
+
+**Check if GPU is used**
+
+```powershell
+docker logs immich_machine_learning --tail 80
+```
+
+Look for `MIGraphXExecutionProvider` or `ROCMExecutionProvider` in `Available ORT providers`. If only `CPUExecutionProvider`, GPU failed — stack still works on CPU.
+
+**Revert to CPU**
+
+```powershell
+docker compose up -d --force-recreate immich-machine-learning
+```
+
+**If ROCm fails (common on RX 580 / Polaris)**
+
+- Try `HSA_OVERRIDE_GFX_VERSION=9.0.0` or `8.0.3` in `.env` and recreate ML container
+- Polaris is not officially supported by ROCm 7.x; performance may be poor or unstable
+- CPU mode (`release` image, no `docker-compose.gpu.yml`) remains the supported fallback
+
+---
+
 ## Upgrades
 
 ```powershell

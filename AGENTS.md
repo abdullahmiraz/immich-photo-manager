@@ -45,7 +45,7 @@ immich/
 3. **External network** `immich-deduper` must exist before `docker compose up` (one-time: `docker network create immich-deduper`).
 4. **Postgres** service `database` must be on networks `default` + `immich-deduper` (deduper reads DB).
 5. **Healthchecks**: use `healthcheck: disable: false` (built-in). Do **not** add custom `curl` to port 3001/5000—breaks on Immich v2.
-6. **GPU (RX 580 + Windows Docker)**: not supported for Immich ML. Keep `immich-machine-learning` on `release` (CPU). No ROCm/OpenVINO WSL hacks unless user explicitly re-tests.
+6. **GPU (RX 580 + Windows Docker)**: experimental — `docker compose -f docker-compose.yml -f docker-compose.gpu.yml` + `scripts/enable-wsl-gpu.ps1` before ML recreate. Default stack stays CPU `release`; ROCm may fail on Polaris — check ML logs for `MIGraphXExecutionProvider`.
 7. **`setup/`** is reference backup only—do not wire into compose.
 
 ## Safe change surface
