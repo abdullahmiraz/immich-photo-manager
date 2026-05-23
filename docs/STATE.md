@@ -1,13 +1,13 @@
 # Project state (continuity for humans & agents)
 
-Last updated: 2026-05-20
+Last updated: 2026-05-23
 
 ## Current stack (intended)
 
 | Container | Image | Role |
 |-----------|-------|------|
 | immich_server | `ghcr.io/immich-app/immich-server:release` | Web UI, API, workers |
-| immich_machine_learning | `immich-machine-learning:release` | CPU ML (OpenVINO/GPU not used on Windows) |
+| immich_machine_learning | `immich-machine-learning:release-rocm` | AMD GPU via WSL `/dev/dxg` + MIGraphX (RX 580) |
 | immich_postgres | `ghcr.io/immich-app/postgres:14-vectorchord...` | DB; on `default` + `immich-deduper` networks |
 | immich_redis | valkey:9 | Job queue (persistent volume `redisdata`) |
 | immich_deduper | `razgrizhsu/immich-deduper:latest` | Duplicate finder UI :8086 |
@@ -31,12 +31,15 @@ Last updated: 2026-05-20
 | Deduper crash on start | Missing `QDRANT_URL` | `QDRANT_URL=http://qdrant:6333` in `.env` |
 | Duplicates page freezes | ML marked unhealthy under load | Lower ML threads; no config-file job locks |
 
-## GPU (experimental, 2026-05-23)
+## GPU (RX 580 — active 2026-05-23)
 
-- **AMD RX 580** on Windows: `docker-compose.gpu.yml` + `hwaccel.ml.yml` (`rocm-wsl`), `scripts/enable-wsl-gpu.ps1`, `scripts/start-gpu-stack.ps1`
-- WSL after `modprobe`: `/dev/dri` + `/dev/dxg` present; **no** `/dev/kfd` (use dxg path, not native Linux ROCm)
-- **Polaris / gfx803** may need `HSA_OVERRIDE_GFX_VERSION` in `.env`; not officially supported — verify ML logs for GPU provider
-- Fallback: `docker compose up -d --force-recreate immich-machine-learning` (CPU `release` image)
+- **Enabled:** `COMPOSE_FILE=docker-compose.yml;docker-compose.gpu.yml` in `.env` (semicolon on Windows) → `release-rocm` + `rocm-wsl`
+- **After each Windows reboot:** `.\scripts\enable-wsl-gpu.ps1` then `.\scripts\start-gpu-stack.ps1` (or `docker compose up -d`)
+- **Verified:** `docker exec immich_machine_learning python -c "import onnxruntime as ort; print(ort.get_available_providers())"` → `MIGraphXExecutionProvider`, `CPUExecutionProvider`
+- WSL: `/dev/dri` + `/dev/dxg` (no `/dev/kfd`); vendor sysfs warning in logs is normal on Docker Desktop
+- **Polaris / gfx803:** `HSA_OVERRIDE_GFX_VERSION=10.3.0` in `.env` works here; if GPU fails try `9.0.0` or `8.0.3`
+- **Revert to CPU:** remove `COMPOSE_FILE` from `.env`, then `docker compose up -d --force-recreate immich-machine-learning`
+- **Docker disk:** `docker_data.vhdx` lives on **D:** (`D:\Docker\wsl`); junction `C:\Users\neo\AppData\Local\Docker\wsl` → D. C: was full (~0.1 GB) before move.
 
 ## Data locations (gitignored)
 

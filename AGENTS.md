@@ -86,8 +86,9 @@ docker compose ps
 - Keep `${VAR}` from `.env`; avoid hardcoded `D:\...` paths (use `UPLOAD_LOCATION`, `EXTERNAL_LIBRARY_PATH`).
 - `immich-server` needs `CHOKIDAR_USEPOLLING=true` on Windows bind mounts.
 - `MACHINE_LEARNING_REQUEST_THREADS=4` (not 8–24)—prevents false ML "unhealthy" during duplicate/migration jobs.
-- `./data/` bind mounts for Postgres/Redis/ML cache (keeps Docker off C:); run `scripts/migrate-docker-volumes-to-bind.ps1` once when upgrading compose.
-- Before Storage Template Migration or deduper Fetch: `scripts/heavy-job-prep.ps1` (see RUNBOOK disk section).
+- `./data/` bind mounts for Postgres/Redis/ML cache on D:; Docker engine disk at `D:\Docker\wsl`.
+- GPU: `docker-compose.gpu.yml` + `scripts/enable-wsl-gpu.ps1`; do not delete ML tags `release`, `release-rocm`, `release-openvino`.
+- Before heavy jobs: `docker compose stop immich-deduper` then `scripts/apply-safe-job-settings.ps1`.
 
 ## After meaningful changes
 
@@ -97,4 +98,4 @@ Update `docs/STATE.md` with: what changed, why, and any new pitfalls (2–5 bull
 
 - OS: Windows 10/11, Docker Desktop (WSL2 backend)
 - CPU: Xeon E5-2670 v3, 12C/24T
-- GPU: AMD RX 580 — **not** used by Immich in this setup
+- GPU: AMD RX 580 — ML uses `release-rocm` + `COMPOSE_FILE` gpu overlay; run `enable-wsl-gpu.ps1` after reboot

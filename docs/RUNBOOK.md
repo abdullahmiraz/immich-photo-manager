@@ -168,10 +168,11 @@ docker compose restart immich-server
 
 **Before Storage Template Migration**
 
-1. Run prep (stops deduper, lowers job concurrency):
+1. Stop deduper and cap job concurrency:
 
 ```powershell
-.\scripts\heavy-job-prep.ps1
+docker compose stop immich-deduper
+.\scripts\apply-safe-job-settings.ps1
 ```
 
 2. Confirm **D: free space ≥ library size + 15 GB** (library ≈ 35 GB → aim for **50+ GB free** on D:).
@@ -185,9 +186,9 @@ docker compose restart immich-server
 **Before immich-deduper Fetch / heavy indexing**
 
 ```powershell
-.\scripts\heavy-job-prep.ps1
-# In Immich Admin → Jobs: wait until Smart Search / Thumbnail / Migration queues are idle
-# Then use deduper Fetch at http://localhost:8086
+docker compose stop immich-deduper
+.\scripts\apply-safe-job-settings.ps1
+# Wait until Immich Admin → Jobs queues are idle, then Fetch at http://localhost:8086
 ```
 
 **After heavy work**
@@ -196,16 +197,7 @@ docker compose restart immich-server
 docker compose start immich-deduper
 ```
 
-**One-time: move old Docker volumes from C: to D:**
-
-```powershell
-docker compose down
-.\scripts\migrate-docker-volumes-to-bind.ps1
-docker compose up -d
-.\scripts\apply-safe-job-settings.ps1
-```
-
-**Docker Desktop:** Settings → Resources → Advanced → set **Disk image location** to `D:\Docker` if C: stays low after the above.
+**Docker disk on D:** `D:\Docker\wsl\disk\docker_data.vhdx` (set in `%APPDATA%\Docker\settings.json` → `customWslDistroDir`). App data (`library/`, `data/pgdata`) stays under the project on D:.
 
 ---
 
@@ -244,8 +236,9 @@ docker compose up -d
 
 ### Out of disk
 
-- Prune unused images: `docker system prune -a`
-- Deduper cache: `dedup-data/cache`
+- Safe prune (keeps tagged images like `release`, `release-rocm`, `release-openvino`): `docker image prune -f` and `docker builder prune -f`
+- Do **not** run `docker system prune -a` if you want to keep ML variant images for later
+- Deduper cache: `dedup-data/cache` (safe to delete; re-downloads models on next Fetch)
 - Immich uploads: `library/`
 
 ### Complete reset (destructive)
@@ -276,64 +269,42 @@ Official Immich env docs: https://docs.immich.app/install/environment-variables
 
 ---
 
-## Faster Docker image pulls
-
-Large images (e.g. `immich-machine-learning:release-rocm`) download **one layer per connection**. Docker defaults to **3** parallel downloads.
-
-**One-time (recommended):**
-
-```powershell
-.\scripts\configure-docker-fast-pulls.ps1
-```
-
-This sets `max-concurrent-downloads: 10` in `%USERPROFILE%\.docker\daemon.json` and restarts Docker Desktop.
-
-**Pull ROCm ML image with auto-retry** (resumes partial layers after a failed pull):
-
-```powershell
-.\scripts\pull-ml-rocm.ps1
-```
-
-**Also helps:** Docker Desktop → Settings → Resources → Advanced → **Disk image location** on `D:\` (faster write than a full C: drive).
-
----
-
 ## AMD GPU (RX 580) — experimental
 
-Windows Docker Desktop only exposes the GPU via WSL2 (`/dev/dxg`). After `modprobe`, `/dev/dri` appears. Immich uses the **ROCm** ML image with a **rocm-wsl** device profile.
+Immich ML uses **ROCm** via WSL2 (`/dev/dxg` + `/dev/dri`). Optional images to keep for later: `release-rocm` (AMD), `release-openvino` (Intel/WSL), `release` (CPU fallback).
 
-**Prerequisites**
-
-- Latest [AMD Adrenalin](https://www.amd.com/en/support) drivers on Windows
-- Docker Desktop → Settings → Resources → **Use the WSL 2 based engine**; enable GPU if shown
-- **~35 GB free** on D: for first `release-rocm` pull
-- Re-run `.\scripts\enable-wsl-gpu.ps1` after each Windows reboot
-
-**Start with GPU**
+**After each Windows reboot** (WSL loses `/dev/dxg` until modules load):
 
 ```powershell
 .\scripts\start-gpu-stack.ps1
 ```
 
-**Check if GPU is used**
+This runs `enable-wsl-gpu.ps1` and recreates ML with `release-rocm`. `.env` sets `COMPOSE_FILE=docker-compose.yml;docker-compose.gpu.yml` (semicolon on Windows) so plain `docker compose up -d` stays on GPU.
+
+**Verify GPU:**
 
 ```powershell
-docker logs immich_machine_learning --tail 80
+docker inspect immich_machine_learning --format "{{.Config.Image}}"
+# expect: .../immich-machine-learning:release-rocm
+
+docker exec immich_machine_learning python -c "import onnxruntime as ort; print(ort.get_available_providers())"
+# expect: MIGraphXExecutionProvider (and CPUExecutionProvider)
 ```
 
-Look for `MIGraphXExecutionProvider` or `ROCMExecutionProvider` in `Available ORT providers`. If only `CPUExecutionProvider`, GPU failed — stack still works on CPU.
+A sysfs vendor warning in logs is normal on Docker Desktop WSL. If only `CPUExecutionProvider`, try `HSA_OVERRIDE_GFX_VERSION=9.0.0` in `.env` and re-run `start-gpu-stack.ps1`.
 
-**Revert to CPU**
+**Revert to CPU:**
 
 ```powershell
+# Remove COMPOSE_FILE line from .env, then:
 docker compose up -d --force-recreate immich-machine-learning
 ```
 
-**If ROCm fails (common on RX 580 / Polaris)**
+**If ROCm fails:** set `HSA_OVERRIDE_GFX_VERSION=9.0.0` or `8.0.3` in `.env`, recreate ML container. CPU `release` image always works.
 
-- Try `HSA_OVERRIDE_GFX_VERSION=9.0.0` or `8.0.3` in `.env` and recreate ML container
-- Polaris is not officially supported by ROCm 7.x; performance may be poor or unstable
-- CPU mode (`release` image, no `docker-compose.gpu.yml`) remains the supported fallback
+### Pull stuck / ENOSPC
+
+Docker disk must be on **D:** with **~20+ GB free**. `%USERPROFILE%\.docker\daemon.json` should include `"max-concurrent-downloads": 10`. Resume: `docker pull ghcr.io/immich-app/immich-machine-learning:release-rocm`
 
 ---
 
