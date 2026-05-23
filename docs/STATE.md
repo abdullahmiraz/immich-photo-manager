@@ -6,7 +6,8 @@ Last updated: 2026-05-23
 
 | Container | Image | Role |
 |-----------|-------|------|
-| immich_server | `ghcr.io/immich-app/immich-server:release` | Web UI, API, workers |
+| immich_upload_optimizer | `miguelangel-nubla/immich-upload-optimizer:latest` | Upload proxy :2283; Caesium lossy q=80 + EXIF |
+| immich_server | `ghcr.io/immich-app/immich-server:release` | Web UI, API (internal; no host port) |
 | immich_machine_learning | `immich-machine-learning:release-rocm` | AMD GPU via WSL `/dev/dxg` + MIGraphX (RX 580) |
 | immich_postgres | `ghcr.io/immich-app/postgres:14-vectorchord...` | DB; on `default` + `immich-deduper` networks |
 | immich_redis | valkey:9 | Job queue (persistent volume `redisdata`) |
@@ -20,6 +21,8 @@ Last updated: 2026-05-23
 3. **ML threads capped at 8** — full 24 threads caused `Machine learning server became unhealthy` and duplicates UI freeze.
 4. **Redis AOF + RDB** — job queue survives restarts.
 5. **External library** host path → container `/photos-import` (read-only).
+6. **Upload optimizer** — `optimizer-config/tasks.yaml`: Caesium `--quality=80 --exif --keep-dates` for JPEG/PNG/WebP/GIF/TIFF; HEIC/RAW/video passthrough unchanged.
+7. **Deduper network** — Compose creates `immich-deduper` automatically (not external).
 
 ## Resolved issues
 
@@ -33,12 +36,12 @@ Last updated: 2026-05-23
 
 ## GPU (RX 580 — active 2026-05-23)
 
-- **Enabled:** `COMPOSE_FILE=docker-compose.yml;docker-compose.gpu.yml` in `.env` (semicolon on Windows) → `release-rocm` + `rocm-wsl`
-- **After each Windows reboot:** `.\scripts\enable-wsl-gpu.ps1` then `.\scripts\start-gpu-stack.ps1` (or `docker compose up -d`)
+- **Enabled:** `release-rocm` + WSL devices inline in `docker-compose.yml`
+- **After each Windows reboot:** `.\scripts\up.ps1 -d` or `enable-wsl-gpu.ps1` then `docker compose up -d`
 - **Verified:** `docker exec immich_machine_learning python -c "import onnxruntime as ort; print(ort.get_available_providers())"` → `MIGraphXExecutionProvider`, `CPUExecutionProvider`
 - WSL: `/dev/dri` + `/dev/dxg` (no `/dev/kfd`); vendor sysfs warning in logs is normal on Docker Desktop
 - **Polaris / gfx803:** `HSA_OVERRIDE_GFX_VERSION=10.3.0` in `.env` works here; if GPU fails try `9.0.0` or `8.0.3`
-- **Revert to CPU:** remove `COMPOSE_FILE` from `.env`, then `docker compose up -d --force-recreate immich-machine-learning`
+- **Revert to CPU:** use `docker-compose.gpu.yml` overlay with CPU image, or edit ML service image to `release` and remove GPU devices
 - **Docker disk:** `docker_data.vhdx` lives on **D:** (`D:\Docker\wsl`); junction `C:\Users\neo\AppData\Local\Docker\wsl` → D. C: was full (~0.1 GB) before move.
 
 ## Data locations (gitignored)

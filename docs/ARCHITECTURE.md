@@ -12,7 +12,8 @@ flowchart TB
 
   subgraph compose [docker compose project: immich]
     subgraph default_net [network: default]
-      Server[immich_server :2283]
+      Optimizer[immich_upload_optimizer :2283]
+      Server[immich_server internal]
       ML[immich_machine_learning]
       Redis[immich_redis]
       DB[(immich_postgres)]
@@ -24,8 +25,9 @@ flowchart TB
     end
   end
 
-  Browser --> Server
+  Browser --> Optimizer
   Browser --> Deduper
+  Optimizer --> Server
   Server --> Redis
   Server --> ML
   Server --> DB

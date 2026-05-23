@@ -1,17 +1,17 @@
-# Optional GPU overlay for AMD RX 580 on Windows Docker Desktop (WSL2).
-# Usage:
-#   .\scripts\enable-wsl-gpu.ps1
-#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --force-recreate immich-machine-learning
-#
+# Optional CPU fallback overlay (main compose uses release-rocm inline for RX 580).
 # Revert to CPU:
-#   docker compose up -d --force-recreate immich-machine-learning
+#   docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d --force-recreate immich-machine-learning
 
 services:
   immich-machine-learning:
     image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}-rocm
-    extends:
-      file: hwaccel.ml.yml
-      service: rocm-wsl
+    group_add:
+      - video
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/dxg:/dev/dxg
+    volumes:
+      - /usr/lib/wsl/lib/libdxcore.so:/usr/lib/libdxcore.so:ro
     environment:
       # Polaris RX 580 (gfx803) — unofficial ROCm; may need tuning
       HSA_OVERRIDE_GFX_VERSION: ${HSA_OVERRIDE_GFX_VERSION:-10.3.0}

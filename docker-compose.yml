@@ -3,6 +3,24 @@
 name: immich
 
 services:
+  # Upload proxy: compresses images before they reach immich-server (http://localhost:2283)
+  immich-upload-optimizer:
+    container_name: immich_upload_optimizer
+    image: ghcr.io/miguelangel-nubla/immich-upload-optimizer:${IUO_VERSION:-latest}
+    ports:
+      - "${IMMICH_PORT:-2283}:2283"
+    volumes:
+      - ${IUO_CONFIG_DIR:-./optimizer-config}:/config:ro
+    environment:
+      IUO_UPSTREAM: http://immich-server:2283
+      IUO_TASKS_FILE: /config/tasks.yaml
+    depends_on:
+      immich-server:
+        condition: service_healthy
+    restart: unless-stopped
+    mem_limit: ${IUO_MEM_LIMIT:-2g}
+    cpus: ${IUO_CPUS:-4}
+
   immich-server:
     container_name: immich_server
     image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
@@ -22,8 +40,7 @@ services:
     volumes:
       - ${UPLOAD_LOCATION}:/data
       - ${EXTERNAL_LIBRARY_PATH}:/photos-import:ro
-    ports:
-      - "2283:2283"
+    # Port 2283 exposed only via immich-upload-optimizer (not host-mapped here)
     depends_on:
       redis:
         condition: service_healthy
@@ -36,18 +53,30 @@ services:
 
   immich-machine-learning:
     container_name: immich_machine_learning
-    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}-rocm
     env_file:
       - .env
+    group_add:
+      - video
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/dxg:/dev/dxg
     volumes:
       - ${MODEL_CACHE_LOCATION}:/cache
+      - /usr/lib/wsl/lib/libdxcore.so:/usr/lib/libdxcore.so:ro
+    environment:
+      HSA_OVERRIDE_GFX_VERSION: ${HSA_OVERRIDE_GFX_VERSION:-10.3.0}
+      HSA_USE_SVM: ${HSA_USE_SVM:-0}
+      MACHINE_LEARNING_REQUEST_THREADS: ${MACHINE_LEARNING_REQUEST_THREADS_GPU:-6}
+      MACHINE_LEARNING_MODEL_INTRA_OP_THREADS: 2
+      MACHINE_LEARNING_MODEL_INTER_OP_THREADS: 1
+      MACHINE_LEARNING_WORKERS: 1
     restart: unless-stopped
     stop_grace_period: 2m
     healthcheck:
       disable: false
-    # Prevent ML from starving disk/RAM during duplicate or migration jobs
-    mem_limit: ${ML_MEM_LIMIT:-6g}
-    cpus: ${ML_CPUS:-4}
+    mem_limit: ${ML_MEM_LIMIT_GPU:-8g}
+    cpus: ${ML_CPUS_GPU:-6}
 
   redis:
     container_name: immich_redis
@@ -122,4 +151,4 @@ services:
 
 networks:
   immich-deduper:
-    external: true
+    name: immich-deduper

@@ -17,7 +17,7 @@ Self-hosted **Immich** photo library + **immich-deduper** for visual duplicate f
 
 | URL | Service |
 |-----|---------|
-| http://localhost:2283 | Immich web + API |
+| http://localhost:2283 | Immich via upload optimizer (compresses uploads) |
 | http://localhost:8086 | immich-deduper UI |
 
 ## Repo map (tracked files only)
@@ -42,7 +42,7 @@ immich/
 
 1. **No `IMMICH_CONFIG_FILE` / no mount of `config/immich.json`** — locks Admin UI job settings; caused duplicates-page freezes.
 2. **Deduper image**: `razgrizhsu/immich-deduper:latest` (Docker Hub). **Not** `ghcr.io/razgrizhsu/...` (denied).
-3. **External network** `immich-deduper` must exist before `docker compose up` (one-time: `docker network create immich-deduper`).
+3. **Deduper network** is created by Compose (`immich-deduper`); no manual `docker network create`.
 4. **Postgres** service `database` must be on networks `default` + `immich-deduper` (deduper reads DB).
 5. **Healthchecks**: use `healthcheck: disable: false` (built-in). Do **not** add custom `curl` to port 3001/5000—breaks on Immich v2.
 6. **GPU (RX 580 + Windows Docker)**: experimental — `docker compose -f docker-compose.yml -f docker-compose.gpu.yml` + `scripts/enable-wsl-gpu.ps1` before ML recreate. Default stack stays CPU `release`; ROCm may fail on Polaris — check ML logs for `MIGraphXExecutionProvider`.
@@ -60,8 +60,8 @@ immich/
 
 **Start stack**
 ```powershell
-docker network create immich-deduper 2>$null
-docker compose up -d
+.\scripts\up.ps1 -d
+# or: docker compose up -d  (after reboot run enable-wsl-gpu.ps1 first for GPU ML)
 ```
 
 **Graceful stop** (preserve jobs)
@@ -87,7 +87,7 @@ docker compose ps
 - `immich-server` needs `CHOKIDAR_USEPOLLING=true` on Windows bind mounts.
 - `MACHINE_LEARNING_REQUEST_THREADS=4` (not 8–24)—prevents false ML "unhealthy" during duplicate/migration jobs.
 - `./data/` bind mounts for Postgres/Redis/ML cache on D:; Docker engine disk at `D:\Docker\wsl`.
-- GPU: `docker-compose.gpu.yml` + `scripts/enable-wsl-gpu.ps1`; do not delete ML tags `release`, `release-rocm`, `release-openvino`.
+- GPU: AMD RX 580 inline in `docker-compose.yml`; `scripts/up.ps1` runs `enable-wsl-gpu.ps1` before compose up
 - Before heavy jobs: `docker compose stop immich-deduper` then `scripts/apply-safe-job-settings.ps1`.
 
 ## After meaningful changes

@@ -1,0 +1,59 @@
+# Lossy image compression before Immich stores files.
+# Caesium: quality 80 (~80% smaller vs original, high perceived quality), EXIF + dates kept.
+# See: https://github.com/miguelangel-nubla/immich-upload-optimizer/blob/main/TASKS.md
+
+tasks:
+  - name: caesium-lossy-80-exif
+    command: caesiumclt --keep-dates --exif --quality=80 --output={{.folder}} {{.folder}}/{{.name}}.{{.extension}}
+    extensions:
+      - jpeg
+      - jpg
+      - png
+      - tiff
+      - tif
+      - webp
+      - gif
+
+  # Formats Immich accepts but Caesium does not handle safely here — upload unchanged (metadata intact).
+  - name: passthrough-images
+    command: ""
+    extensions:
+      - avif
+      - bmp
+      - heic
+      - heif
+      - insp
+      - jxl
+      - psd
+      - raw
+      - rw2
+      - svg
+      - pgx
+      - pam
+      - pnm
+      - pgm
+      - ppm
+      - pfm
+      - exr
+
+  # Videos unchanged (lossy transcode is optional; disabled to preserve originals + metadata).
+  - name: passthrough-videos
+    command: ""
+    extensions:
+      - 3gp
+      - 3gpp
+      - avi
+      - flv
+      - m4v
+      - mkv
+      - mts
+      - m2ts
+      - m2t
+      - mp4
+      - insv
+      - mpg
+      - mpe
+      - mpeg
+      - mov
+      - webm
+      - wmv

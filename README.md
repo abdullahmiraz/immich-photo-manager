@@ -4,19 +4,31 @@ Self-hosted photo library ([Immich](https://immich.app)) with [immich-deduper](h
 
 | App | URL |
 |-----|-----|
-| Immich | http://localhost:2283 |
+| Immich (via upload optimizer) | http://localhost:2283 |
 | immich-deduper | http://localhost:8086 |
 
 ## Quick start
 
+**First time only:**
+
 ```powershell
 cd "D:\code\duplicate image remover\immich"
-Copy-Item .env.example .env   # first time only; edit passwords
-docker network create immich-deduper   # once per machine
+Copy-Item .env.example .env   # edit passwords if needed
+```
+
+**Start (recommended on Windows — loads GPU + full stack):**
+
+```powershell
+.\scripts\up.ps1 -d
+```
+
+**Or plain Compose** (works if Docker Desktop is already running and WSL GPU was loaded this session):
+
+```powershell
 docker compose up -d
 ```
 
-Open http://localhost:2283 and create an admin account.
+Open http://localhost:2283 (upload optimizer → Immich). Deduper: http://localhost:8086
 
 ## Documentation
 

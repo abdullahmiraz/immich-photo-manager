@@ -31,17 +31,13 @@ Copy-Item .env.example .env
 New-Item -ItemType Directory -Force -Path library, "library\upload\external", dedup-data
 ```
 
-### 3. Create external Docker network (once per machine)
+### 3. Start everything
 
 ```powershell
-docker network create immich-deduper
+.\scripts\up.ps1 -d
 ```
 
-### 4. Start everything
-
-```powershell
-docker compose up -d
-```
+Or `docker compose up -d` if WSL GPU was already loaded this session (`.\scripts\enable-wsl-gpu.ps1` after each reboot for AMD ML).
 
 First start downloads images (several GB). Wait until:
 
@@ -51,12 +47,16 @@ docker compose ps
 
 All services should show `healthy` or `running` (server may show `health: starting` for ~1 min).
 
-### 5. Open Immich and create admin
+### 4. Open Immich and create admin
 
-1. http://localhost:2283
+1. http://localhost:2283 — traffic goes through **immich-upload-optimizer** (compresses new uploads before storage).
 2. Register the first user (becomes admin).
 
-### 6. External library (optional)
+Uploads of JPEG/PNG/WebP/GIF/TIFF are recompressed at **quality 80** with **EXIF and dates kept** (`optimizer-config/tasks.yaml`). HEIC, RAW, and videos pass through unchanged.
+
+**Change optimizer settings:** edit `optimizer-config/tasks.yaml`, then `docker compose up -d --force-recreate immich-upload-optimizer`.
+
+### 5. External library (optional)
 
 1. Administration → **External Libraries** → Create library
 2. Add folder: **`/photos-import`** (container path, not Windows path)
@@ -64,7 +64,7 @@ All services should show `healthy` or `running` (server may show `health: starti
 
 Host photos live in `library/upload/external`.
 
-### 7. immich-deduper
+### 6. immich-deduper
 
 1. http://localhost:8086
 2. Use the UI to index/scan (reads Immich Postgres + `./library`)
@@ -203,12 +203,9 @@ docker compose start immich-deduper
 
 ## Troubleshooting
 
-### `network immich-deduper not found`
+### Deduper cannot reach Postgres
 
-```powershell
-docker network create immich-deduper
-docker compose up -d
-```
+Ensure `database` is on networks `default` and `immich-deduper` (already set in compose). Recreate: `docker compose up -d --force-recreate database immich-deduper`.
 
 ### Deduper: `Failed to initialize Qdrant`
 
