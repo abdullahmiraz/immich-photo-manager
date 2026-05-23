@@ -147,6 +147,68 @@ docker compose restart immich-server
 
 ---
 
+## Disk spikes & server going offline
+
+**Symptoms:** C: or D: hits 100% during **Storage Template Migration** or **immich-deduper Fetch**; Immich becomes unreachable.
+
+**Root causes on this setup:**
+
+| Cause | Why |
+|-------|-----|
+| Storage Template Migration | On Windows Docker bind mounts, Immich often **copies** files instead of renaming → needs up to **~1× library size extra free space** (~35 GB for this library) on the same drive as `library/` |
+| Docker on C: | Named volumes (`pgdata`, `model-cache`) lived on Docker’s WSL disk (usually **C:**). Only ~38 GB free on C: → WSL VHDX growth fills the disk |
+| Parallel jobs | Default job concurrency runs thumbnails + smart search + migration I/O at once |
+| Deduper + Immich together | ResNet152 indexing + Qdrant + Immich jobs compete for disk and RAM |
+
+**Fixes applied in this repo:**
+
+- DB/Redis/ML cache → `./data/*` on **D:** (bind mounts, not C: Docker volumes)
+- Safe job concurrency → `.\scripts\apply-safe-job-settings.ps1`
+- ML threads capped at 4; deduper uses `latest-cpu` with memory/CPU limits
+
+**Before Storage Template Migration**
+
+1. Run prep (stops deduper, lowers job concurrency):
+
+```powershell
+.\scripts\heavy-job-prep.ps1
+```
+
+2. Confirm **D: free space ≥ library size + 15 GB** (library ≈ 35 GB → aim for **50+ GB free** on D:).
+
+3. Do **not** run deduper Fetch at the same time.
+
+4. In Admin → Jobs, run only **Storage Template Migration**; wait until finished.
+
+5. If files are already under `library/admin/YYYY/MM/` and match your template, consider **skipping** migration (it may copy every file for no benefit).
+
+**Before immich-deduper Fetch / heavy indexing**
+
+```powershell
+.\scripts\heavy-job-prep.ps1
+# In Immich Admin → Jobs: wait until Smart Search / Thumbnail / Migration queues are idle
+# Then use deduper Fetch at http://localhost:8086
+```
+
+**After heavy work**
+
+```powershell
+docker compose start immich-deduper
+```
+
+**One-time: move old Docker volumes from C: to D:**
+
+```powershell
+docker compose down
+.\scripts\migrate-docker-volumes-to-bind.ps1
+docker compose up -d
+.\scripts\apply-safe-job-settings.ps1
+```
+
+**Docker Desktop:** Settings → Resources → Advanced → set **Disk image location** to `D:\Docker` if C: stays low after the above.
+
+---
+
 ## Troubleshooting
 
 ### `network immich-deduper not found`

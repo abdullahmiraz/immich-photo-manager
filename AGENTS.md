@@ -85,7 +85,9 @@ docker compose ps
 
 - Keep `${VAR}` from `.env`; avoid hardcoded `D:\...` paths (use `UPLOAD_LOCATION`, `EXTERNAL_LIBRARY_PATH`).
 - `immich-server` needs `CHOKIDAR_USEPOLLING=true` on Windows bind mounts.
-- `MACHINE_LEARNING_REQUEST_THREADS=8` (not 24)—prevents false ML "unhealthy" during duplicate jobs.
+- `MACHINE_LEARNING_REQUEST_THREADS=4` (not 8–24)—prevents false ML "unhealthy" during duplicate/migration jobs.
+- `./data/` bind mounts for Postgres/Redis/ML cache (keeps Docker off C:); run `scripts/migrate-docker-volumes-to-bind.ps1` once when upgrading compose.
+- Before Storage Template Migration or deduper Fetch: `scripts/heavy-job-prep.ps1` (see RUNBOOK disk section).
 
 ## After meaningful changes
 

@@ -1,6 +1,7 @@
 # User data & runtime
 library/
 dedup-data/
+data/
 postgres/
 pgdata/
 

@@ -14,6 +14,9 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_DATABASE_NAME: ${DB_DATABASE_NAME}
       REDIS_HOSTNAME: redis
+      DB_STORAGE_TYPE: SSD
+      # Cap cores Immich uses for job scheduling (Xeon 12C — avoid oversubscription)
+      CPU_CORES: ${IMMICH_CPU_CORES:-8}
       CHOKIDAR_USEPOLLING: "true"
       CHOKIDAR_INTERVAL: "1000"
     volumes:
@@ -37,11 +40,14 @@ services:
     env_file:
       - .env
     volumes:
-      - model-cache:/cache
+      - ${MODEL_CACHE_LOCATION}:/cache
     restart: unless-stopped
     stop_grace_period: 2m
     healthcheck:
       disable: false
+    # Prevent ML from starving disk/RAM during duplicate or migration jobs
+    mem_limit: ${ML_MEM_LIMIT:-6g}
+    cpus: ${ML_CPUS:-4}
 
   redis:
     container_name: immich_redis
@@ -53,7 +59,7 @@ services:
       --appendonly yes
       --appendfsync everysec
     volumes:
-      - redisdata:/data
+      - ${REDIS_DATA_LOCATION}:/data
     restart: unless-stopped
     healthcheck:
       test: redis-cli ping || exit 1
@@ -69,8 +75,9 @@ services:
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_DB: ${DB_DATABASE_NAME}
       POSTGRES_INITDB_ARGS: "--data-checksums"
+      DB_STORAGE_TYPE: SSD
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ${DB_DATA_LOCATION}:/var/lib/postgresql/data
     shm_size: 512mb
     restart: unless-stopped
     healthcheck:
@@ -78,10 +85,11 @@ services:
     networks:
       - default
       - immich-deduper
+    mem_limit: ${DB_MEM_LIMIT:-4g}
 
   # https://github.com/RazgrizHsu/immich-deduper — same-host setup
   immich-deduper:
-    image: ${DEDUP_IMAGE:-razgrizhsu/immich-deduper:latest}
+    image: ${DEDUP_IMAGE:-razgrizhsu/immich-deduper:latest-cpu}
     container_name: immich_deduper
     env_file:
       - .env
@@ -99,6 +107,8 @@ services:
     restart: unless-stopped
     networks:
       - immich-deduper
+    mem_limit: ${DEDUP_MEM_LIMIT:-4g}
+    cpus: ${DEDUP_CPUS:-4}
 
   qdrant:
     container_name: immich_deduper_qdrant
@@ -108,12 +118,8 @@ services:
       - ${DEDUP_DATA}/qdrant:/qdrant/storage
     networks:
       - immich-deduper
+    mem_limit: ${QDRANT_MEM_LIMIT:-2g}
 
 networks:
   immich-deduper:
     external: true
-
-volumes:
-  model-cache:
-  pgdata:
-  redisdata:

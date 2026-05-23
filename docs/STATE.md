@@ -1,6 +1,6 @@
 # Project state (continuity for humans & agents)
 
-Last updated: 2026-05-19
+Last updated: 2026-05-20
 
 ## Current stack (intended)
 
@@ -51,6 +51,17 @@ Last updated: 2026-05-19
 - Container path: `/photos-import`
 - Host path: `./library/upload/external` (`EXTERNAL_LIBRARY_PATH`)
 - Enable in Immich: Administration → External Libraries
+
+## Disk / performance (2026-05-20)
+
+| Issue | Mitigation |
+|-------|------------|
+| 100% disk during Storage Template Migration | Needs ~library-size free on D:; migration may **copy** files on Windows bind mounts |
+| C: drive full | Moved `pgdata` / `redis` / `model-cache` to `./data/` bind mounts on D: |
+| Deduper + Immich crash host | `heavy-job-prep.ps1` stops deduper; job concurrency via `apply-safe-job-settings.ps1` |
+| ML unhealthy under load | `MACHINE_LEARNING_REQUEST_THREADS=4`, deduper `latest-cpu`, container mem/cpu limits |
+
+Scripts: `scripts/heavy-job-prep.ps1`, `scripts/apply-safe-job-settings.ps1`, `scripts/migrate-docker-volumes-to-bind.ps1`
 
 ## Open / optional follow-ups
 
