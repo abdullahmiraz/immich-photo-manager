@@ -45,7 +45,7 @@ immich/
 3. **Deduper network** is created by Compose (`immich-deduper`); no manual `docker network create`.
 4. **Postgres** service `database` must be on networks `default` + `immich-deduper` (deduper reads DB).
 5. **Healthchecks**: use `healthcheck: disable: false` (built-in). Do **not** add custom `curl` to port 3001/5000—breaks on Immich v2.
-6. **GPU (RX 580 + Windows Docker)**: experimental — `docker compose -f docker-compose.yml -f docker-compose.gpu.yml` + `scripts/enable-wsl-gpu.ps1` before ML recreate. Default stack stays CPU `release`; ROCm may fail on Polaris — check ML logs for `MIGraphXExecutionProvider`.
+6. **GPU (RX 580 + Windows Docker)**: `release-rocm` in compose — tries GPU, auto CPU fallback on WSL; run `enable-wsl-gpu.ps1` after reboot.
 7. **`setup/`** is reference backup only—do not wire into compose.
 
 ## Safe change surface
@@ -61,7 +61,7 @@ immich/
 **Start stack**
 ```powershell
 .\scripts\up.ps1 -d
-# or: docker compose up -d  (after reboot run enable-wsl-gpu.ps1 first for GPU ML)
+# or: docker compose up -d
 ```
 
 **Graceful stop** (preserve jobs)
@@ -87,7 +87,7 @@ docker compose ps
 - `immich-server` needs `CHOKIDAR_USEPOLLING=true` on Windows bind mounts.
 - `MACHINE_LEARNING_REQUEST_THREADS=4` (not 8–24)—prevents false ML "unhealthy" during duplicate/migration jobs.
 - `./data/` bind mounts for Postgres/Redis/ML cache on D:; Docker engine disk at `D:\Docker\wsl`.
-- GPU: AMD RX 580 inline in `docker-compose.yml`; `scripts/up.ps1` runs `enable-wsl-gpu.ps1` before compose up
+- GPU: `release-rocm` GPU-first with automatic CPU fallback on WSL; `enable-wsl-gpu.ps1` after reboot
 - Before heavy jobs: `docker compose stop immich-deduper` then `scripts/apply-safe-job-settings.ps1`.
 
 ## After meaningful changes
@@ -98,4 +98,4 @@ Update `docs/STATE.md` with: what changed, why, and any new pitfalls (2–5 bull
 
 - OS: Windows 10/11, Docker Desktop (WSL2 backend)
 - CPU: Xeon E5-2670 v3, 12C/24T
-- GPU: AMD RX 580 — ML uses `release-rocm` + `COMPOSE_FILE` gpu overlay; run `enable-wsl-gpu.ps1` after reboot
+- GPU: AMD RX 580 — ML uses `release-rocm` (GPU-first, CPU fallback on WSL)

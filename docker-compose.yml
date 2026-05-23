@@ -8,7 +8,7 @@ services:
     container_name: immich_upload_optimizer
     image: ghcr.io/miguelangel-nubla/immich-upload-optimizer:${IUO_VERSION:-latest}
     ports:
-      - "${IMMICH_PORT:-2283}:2283"
+      - "${IMMICH_HOST_PORT:-2283}:2283"
     volumes:
       - ${IUO_CONFIG_DIR:-./optimizer-config}:/config:ro
     environment:
@@ -33,6 +33,7 @@ services:
       DB_DATABASE_NAME: ${DB_DATABASE_NAME}
       REDIS_HOSTNAME: redis
       DB_STORAGE_TYPE: SSD
+      IMMICH_PORT: "2283"
       # Cap cores Immich uses for job scheduling (Xeon 12C — avoid oversubscription)
       CPU_CORES: ${IMMICH_CPU_CORES:-8}
       CHOKIDAR_USEPOLLING: "true"
@@ -51,6 +52,8 @@ services:
     healthcheck:
       disable: false
 
+  # GPU-first ML (release-rocm). On WSL, if HIP cannot see the GPU, ONNX falls back to CPU automatically.
+  # After reboot: .\scripts\enable-wsl-gpu.ps1 — verify logs lack "Falling back to ['CPUExecutionProvider']".
   immich-machine-learning:
     container_name: immich_machine_learning
     image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}-rocm
@@ -65,12 +68,9 @@ services:
       - ${MODEL_CACHE_LOCATION}:/cache
       - /usr/lib/wsl/lib/libdxcore.so:/usr/lib/libdxcore.so:ro
     environment:
+      IMMICH_PORT: "3003"
       HSA_OVERRIDE_GFX_VERSION: ${HSA_OVERRIDE_GFX_VERSION:-10.3.0}
       HSA_USE_SVM: ${HSA_USE_SVM:-0}
-      MACHINE_LEARNING_REQUEST_THREADS: ${MACHINE_LEARNING_REQUEST_THREADS_GPU:-6}
-      MACHINE_LEARNING_MODEL_INTRA_OP_THREADS: 2
-      MACHINE_LEARNING_MODEL_INTER_OP_THREADS: 1
-      MACHINE_LEARNING_WORKERS: 1
     restart: unless-stopped
     stop_grace_period: 2m
     healthcheck:

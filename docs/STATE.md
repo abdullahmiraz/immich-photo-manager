@@ -8,7 +8,7 @@ Last updated: 2026-05-23
 |-----------|-------|------|
 | immich_upload_optimizer | `miguelangel-nubla/immich-upload-optimizer:latest` | Upload proxy :2283; Caesium lossy q=80 + EXIF |
 | immich_server | `ghcr.io/immich-app/immich-server:release` | Web UI, API (internal; no host port) |
-| immich_machine_learning | `immich-machine-learning:release-rocm` | AMD GPU via WSL `/dev/dxg` + MIGraphX (RX 580) |
+| immich_machine_learning | `immich-machine-learning:release-rocm` | GPU-first; auto CPU fallback on WSL until HIP works |
 | immich_postgres | `ghcr.io/immich-app/postgres:14-vectorchord...` | DB; on `default` + `immich-deduper` networks |
 | immich_redis | valkey:9 | Job queue (persistent volume `redisdata`) |
 | immich_deduper | `razgrizhsu/immich-deduper:latest` | Duplicate finder UI :8086 |
@@ -32,17 +32,15 @@ Last updated: 2026-05-23
 | Containers "unhealthy", app works | Custom healthcheck `curl localhost:3001` | Use `healthcheck: disable: false` |
 | Deduper pull denied | Wrong registry `ghcr.io/razgrizhsu/...` | Use `razgrizhsu/immich-deduper` on Docker Hub |
 | Deduper crash on start | Missing `QDRANT_URL` | `QDRANT_URL=http://qdrant:6333` in `.env` |
-| Duplicates page freezes | ML marked unhealthy under load | Lower ML threads; no config-file job locks |
+| ML `fetch failed` / OCR jobs fail | `IMMICH_PORT=2283` in shared `.env` makes ML listen on wrong port | Remove `IMMICH_PORT` from `.env`; compose sets server=2283, ML=3003 |
 
-## GPU (RX 580 — active 2026-05-23)
+## GPU (RX 580 — GPU-first, CPU fallback on WSL)
 
-- **Enabled:** `release-rocm` + WSL devices inline in `docker-compose.yml`
-- **After each Windows reboot:** `.\scripts\up.ps1 -d` or `enable-wsl-gpu.ps1` then `docker compose up -d`
-- **Verified:** `docker exec immich_machine_learning python -c "import onnxruntime as ort; print(ort.get_available_providers())"` → `MIGraphXExecutionProvider`, `CPUExecutionProvider`
-- WSL: `/dev/dri` + `/dev/dxg` (no `/dev/kfd`); vendor sysfs warning in logs is normal on Docker Desktop
-- **Polaris / gfx803:** `HSA_OVERRIDE_GFX_VERSION=10.3.0` in `.env` works here; if GPU fails try `9.0.0` or `8.0.3`
-- **Revert to CPU:** use `docker-compose.gpu.yml` overlay with CPU image, or edit ML service image to `release` and remove GPU devices
-- **Docker disk:** `docker_data.vhdx` lives on **D:** (`D:\Docker\wsl`); junction `C:\Users\neo\AppData\Local\Docker\wsl` → D. C: was full (~0.1 GB) before move.
+- **Compose:** `release-rocm` + `/dev/dxg` + `libdxcore` in `docker-compose.yml`
+- **Today on Windows WSL:** HIP often reports `no ROCm-capable device` → ONNX **`Falling back to ['CPUExecutionProvider']`** (high CPU, flat GPU is expected until Immich/ROCm WSL matures)
+- **When GPU works:** same compose — logs will show MIGraphX without "Falling back to CPU"; GPU usage in Task Manager during face/Smart Search jobs
+- **After reboot:** `.\scripts\enable-wsl-gpu.ps1` before `docker compose up -d`
+- **Pure CPU only (optional):** `docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d --force-recreate immich-machine-learning` if you add a cpu overlay, or temporarily change image to `release` without GPU devices
 
 ## Data locations (gitignored)
 

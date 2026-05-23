@@ -1,4 +1,4 @@
-# Optional CPU fallback overlay (main compose uses release-rocm inline for RX 580).
+# Optional overlay — same as inline GPU in docker-compose.yml (for experiments / pin overrides)
 # Revert to CPU:
 #   docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d --force-recreate immich-machine-learning
 
