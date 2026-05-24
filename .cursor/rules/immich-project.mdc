@@ -14,16 +14,17 @@ Infrastructure-only repo. Read `AGENTS.md` then `docs/STATE.md` before edits.
 - Add healthchecks with `curl` to port 3001 or wrong paths
 - Hardcode `D:\...` paths in compose (use `.env` vars)
 - Read or modify `library/`, `dedup-data/` unless task requires it
-- Enable GPU/ROCm/OpenVINO WSL for ML without explicit user request and hardware proof
+- Add GPU/ROCm/OpenVINO ML overlays (CPU `release` only on this stack)
 
 ## Must
 
 - Keep Postgres `database` on networks `default` and `immich-deduper`
 - Use `CHOKIDAR_USEPOLLING=true` on `immich-server` (Windows)
-- Keep `MACHINE_LEARNING_REQUEST_THREADS=8` in `.env.example`
+- Keep `MACHINE_LEARNING_REQUEST_THREADS=4` in `.env.example`
 - Update `docs/STATE.md` after behavior-changing changes
-- Use `docker compose stop -t 120` for graceful shutdown docs/commands
+- Use `docker compose stop -t 120` for graceful shutdown
+- Put operator commands in `docs/RECIPES.md`, not new `.ps1` scripts
 
 ## Files to edit for infra changes
 
-`docker-compose.yml`, `.env.example`, `docs/*`, `README.md`, `AGENTS.md`
+`docker-compose.yml`, `docker-compose.*.yml`, `.env.example`, `docs/*`, `README.md`, `AGENTS.md`

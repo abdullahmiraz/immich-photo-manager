@@ -6,96 +6,74 @@ Docker-only project. No app source code in-repo—only Compose, env, and data di
 
 1. This file (`AGENTS.md`)
 2. `docs/STATE.md` — current decisions, pitfalls, last-known-good
-3. `docker-compose.yml` + `.env.example` (not `.env` unless user asks)
-4. `docs/RUNBOOK.md` — only for install/debug tasks
+3. `docker-compose.yml` + `compose/` + `.env.example` (not `.env` unless user asks)
+4. `docs/RECIPES.md` — copy-paste playbooks
+5. `docs/RUNBOOK.md` — troubleshooting only
 
 Do **not** read `library/`, `dedup-data/`, or `setup/` unless the task requires them.
 
 ## Project purpose
 
-Self-hosted **Immich** photo library + **immich-deduper** for visual duplicate finding, on **Windows Docker Desktop**.
+Self-hosted **Immich** photo library + **immich-deduper** for visual duplicate finding, on **Windows Docker Desktop**. **CPU ML only** — no GPU/ROCm.
 
 | URL | Service |
 |-----|---------|
-| http://localhost:2283 | Immich via upload optimizer (compresses uploads) |
+| http://localhost:2283 | Immich (direct server; optimizer off by default) |
 | http://localhost:8086 | immich-deduper UI |
 
 ## Repo map (tracked files only)
 
 ```
 immich/
-├── AGENTS.md              ← you are here
-├── README.md              ← human index
-├── docker-compose.yml     ← single source of infra truth
-├── .env.example           ← env template (copy → .env)
-├── .gitignore
+├── AGENTS.md
+├── README.md
+├── docker-compose.yml              ← core Immich
+├── docker-compose.deduper.yml      ← add-on (included)
+├── docker-compose.optimizer.yml    ← add-on (--profile optimizer)
+├── .env.example
+├── optimizer-config/tasks.yaml ← used only with --profile optimizer
 ├── docs/
-│   ├── STATE.md           ← continuity / decisions (update when you change behavior)
-│   ├── RUNBOOK.md         ← full operator guide
-│   └── ARCHITECTURE.md    ← services & networks
-└── setup/                 ← BACKUP ONLY, never mount at runtime
-    ├── immich-config.json
-    └── Screenshot_1.png
+│   ├── RECIPES.md              ← step-by-step commands (no scripts)
+│   ├── RUNBOOK.md
+│   ├── STATE.md
+│   └── ARCHITECTURE.md
+└── setup/                      ← BACKUP ONLY, never mount at runtime
 ```
 
 ## Hard rules (do not break)
 
-1. **No `IMMICH_CONFIG_FILE` / no mount of `config/immich.json`** — locks Admin UI job settings; caused duplicates-page freezes.
-2. **Deduper image**: `razgrizhsu/immich-deduper:latest` (Docker Hub). **Not** `ghcr.io/razgrizhsu/...` (denied).
-3. **Deduper network** is created by Compose (`immich-deduper`); no manual `docker network create`.
-4. **Postgres** service `database` must be on networks `default` + `immich-deduper` (deduper reads DB).
-5. **Healthchecks**: use `healthcheck: disable: false` (built-in). Do **not** add custom `curl` to port 3001/5000—breaks on Immich v2.
-6. **GPU (RX 580 + Windows Docker)**: `release-rocm` in compose — tries GPU, auto CPU fallback on WSL; run `enable-wsl-gpu.ps1` after reboot.
-7. **`setup/`** is reference backup only—do not wire into compose.
-
-## Safe change surface
-
-| OK to edit | Avoid |
-|------------|--------|
-| `docker-compose.yml`, `.env.example`, `docs/*` | `library/**` (user photos) |
-| `README.md`, `AGENTS.md` | `dedup-data/**`, `pgdata` volumes |
-| `.gitignore` | Committing `.env` with secrets |
+1. **No `IMMICH_CONFIG_FILE` / no mount of `config/immich.json`** — locks Admin UI job settings.
+2. **Deduper image**: `razgrizhsu/immich-deduper:latest-cpu` on Docker Hub. **Not** `ghcr.io/razgrizhsu/...`.
+3. **Postgres** `database` on networks `default` + `immich-deduper`.
+4. **Healthchecks**: `healthcheck: disable: false` only — no custom `curl` on 3001/5000.
+5. **ML is CPU-only** — `release` image; no ROCm/GPU devices or overlays.
+6. **Do not set `IMMICH_PORT` in `.env`** — compose sets server=2283, ML=3003 per service.
+7. **`setup/`** is reference backup only.
 
 ## Common tasks
 
-**Start stack**
-```powershell
-.\scripts\up.ps1 -d
-# or: docker compose up -d
-```
+See **[docs/RECIPES.md](docs/RECIPES.md)** for all commands. Short form:
 
-**Graceful stop** (preserve jobs)
 ```powershell
+docker compose up -d
 docker compose stop -t 120
-```
-
-**Recreate after env change**
-```powershell
 docker compose up -d --force-recreate
-```
-
-**Verify**
-```powershell
-docker compose ps
-# Immich: GET http://localhost:2283/api/server/ping → pong
-# Deduper: GET http://localhost:8086 → 200
 ```
 
 ## When editing compose
 
-- Keep `${VAR}` from `.env`; avoid hardcoded `D:\...` paths (use `UPLOAD_LOCATION`, `EXTERNAL_LIBRARY_PATH`).
-- `immich-server` needs `CHOKIDAR_USEPOLLING=true` on Windows bind mounts.
-- `MACHINE_LEARNING_REQUEST_THREADS=4` (not 8–24)—prevents false ML "unhealthy" during duplicate/migration jobs.
-- `./data/` bind mounts for Postgres/Redis/ML cache on D:; Docker engine disk at `D:\Docker\wsl`.
-- GPU: `release-rocm` GPU-first with automatic CPU fallback on WSL; `enable-wsl-gpu.ps1` after reboot
-- Before heavy jobs: `docker compose stop immich-deduper` then `scripts/apply-safe-job-settings.ps1`.
+- Core in `docker-compose.yml`; add-ons as `docker-compose.*.yml` in project root (not subfolders — avoids wrong bind-mount paths).
+- Keep `${VAR}` from `.env`; no hardcoded `D:\...` paths.
+- `CHOKIDAR_USEPOLLING=true` on `immich-server` (Windows bind mounts).
+- `MACHINE_LEARNING_REQUEST_THREADS=4` in `.env.example`.
+- Before heavy jobs: see RECIPES → "Before heavy Immich jobs".
 
 ## After meaningful changes
 
-Update `docs/STATE.md` with: what changed, why, and any new pitfalls (2–5 bullets).
+Update `docs/STATE.md` (2–5 bullets).
 
 ## Host context
 
-- OS: Windows 10/11, Docker Desktop (WSL2 backend)
+- Windows 10/11, Docker Desktop (WSL2)
 - CPU: Xeon E5-2670 v3, 12C/24T
-- GPU: AMD RX 580 — ML uses `release-rocm` (GPU-first, CPU fallback on WSL)
+- ML: CPU `release` only

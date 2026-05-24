@@ -1,63 +1,47 @@
 # Immich + Duplicate Remover (Docker)
 
-Self-hosted photo library ([Immich](https://immich.app)) with [immich-deduper](https://github.com/RazgrizHsu/immich-deduper) for visual duplicate detection. Runs on **Windows** via **Docker Desktop**.
+Self-hosted photo library ([Immich](https://immich.app)) with [immich-deduper](https://github.com/RazgrizHsu/immich-deduper) for visual duplicate detection. Runs on **Windows** via **Docker Desktop** (CPU ML only).
 
 | App | URL |
 |-----|-----|
-| Immich (via upload optimizer) | http://localhost:2283 |
+| Immich | http://localhost:2283 |
 | immich-deduper | http://localhost:8086 |
 
 ## Quick start
 
-**First time only:**
-
 ```powershell
 cd "D:\code\duplicate image remover\immich"
-Copy-Item .env.example .env   # edit passwords if needed
-```
-
-**Start (recommended on Windows — loads GPU + full stack):**
-
-```powershell
-.\scripts\up.ps1 -d
-```
-
-**Or plain Compose** (works if Docker Desktop is already running and WSL GPU was loaded this session):
-
-```powershell
+Copy-Item .env.example .env   # edit DB_PASSWORD / PSQL_PASS
 docker compose up -d
 ```
 
-Open http://localhost:2283 (upload optimizer → Immich). Deduper: http://localhost:8086
+Full first-time steps: **[docs/RECIPES.md](docs/RECIPES.md)**
 
 ## Documentation
 
-| Doc | Audience | Contents |
-|-----|----------|----------|
-| [docs/RUNBOOK.md](docs/RUNBOOK.md) | Operators | Install, daily use, troubleshooting |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Everyone | Services, networks, volumes |
-| [docs/STATE.md](docs/STATE.md) | Maintainers & AI | Current decisions, pitfalls, changelog |
-| [AGENTS.md](AGENTS.md) | Coding agents | Read-first guide, hard rules, file map |
-
-## AI / Cursor agents
-
-Start with **[AGENTS.md](AGENTS.md)** then **[docs/STATE.md](docs/STATE.md)**. Do not scan `library/` or `dedup-data/`.
+| Doc | Contents |
+|-----|----------|
+| [docs/RECIPES.md](docs/RECIPES.md) | **Step-by-step commands** — start, stop, heavy jobs, immich-go, optimizer |
+| [docs/RUNBOOK.md](docs/RUNBOOK.md) | Troubleshooting, disk, upgrades |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Services, networks, compose modules |
+| [docs/STATE.md](docs/STATE.md) | Decisions & pitfalls (agents) |
+| [AGENTS.md](AGENTS.md) | Agent read-first guide |
 
 ## Project layout
 
 ```
-docker-compose.yml   # infrastructure
-.env.example         # copy → .env
-setup/               # backup only (config export + screenshot)
-library/             # photos (gitignored)
-dedup-data/          # deduper data (gitignored)
+docker-compose.yml           # core Immich
+docker-compose.deduper.yml   # add-on (included)
+docker-compose.optimizer.yml # add-on (optional profile)
+.env.example
+optimizer-config/        # upload optimizer tasks (optional profile)
+setup/                   # backup only
+library/                 # photos (gitignored)
+dedup-data/              # deduper data (gitignored)
 ```
 
 ## External photos
 
-- Host: `library/upload/external`
-- In Immich UI use container path: **`/photos-import`**
+Host: `library/upload/external` → Immich UI path: **`/photos-import`**
 
-## Settings
-
-Configured in **Immich Admin UI** (no runtime config file). See [docs/STATE.md](docs/STATE.md) for why.
+Settings: **Immich Admin UI** only (no runtime config file). See [docs/STATE.md](docs/STATE.md).

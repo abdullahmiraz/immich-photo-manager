@@ -1,0 +1,23 @@
+# Add-on: upload compression before Immich stores files (--profile optimizer).
+# Enable: docs/RECIPES.md → "Enable upload optimizer"
+#
+# When active, comment out immich-server `ports:` in docker-compose.yml (only one :2283).
+
+services:
+  immich-upload-optimizer:
+    profiles: ["optimizer"]
+    container_name: immich_upload_optimizer
+    image: ghcr.io/miguelangel-nubla/immich-upload-optimizer:${IUO_VERSION:-latest}
+    ports:
+      - "${IMMICH_HOST_PORT:-2283}:2283"
+    volumes:
+      - ${IUO_CONFIG_DIR:-./optimizer-config}:/config:ro
+    environment:
+      IUO_UPSTREAM: http://immich-server:2283
+      IUO_TASKS_FILE: /config/tasks.yaml
+    depends_on:
+      immich-server:
+        condition: service_healthy
+    restart: unless-stopped
+    mem_limit: ${IUO_MEM_LIMIT:-4g}
+    cpus: ${IUO_CPUS:-4}

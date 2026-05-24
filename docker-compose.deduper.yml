@@ -1,0 +1,45 @@
+# Add-on: immich-deduper + Qdrant (not part of upstream Immich).
+# Included from docker-compose.yml. Disable: comment out that include.
+# Paths in .env (./dedup-data, ./library) resolve from project root — same folder as this file.
+
+services:
+  database:
+    networks:
+      - default
+      - immich-deduper
+
+  immich-deduper:
+    image: ${DEDUP_IMAGE:-razgrizhsu/immich-deduper:latest-cpu}
+    container_name: immich_deduper
+    env_file:
+      - .env
+    ports:
+      - "${DEDUP_PORT:-8086}:8086"
+    volumes:
+      - ${DEDUP_DATA}:/app/data
+      - ${DEDUP_DATA}/cache:/root/.cache/torch/
+      - ${UPLOAD_LOCATION}:/immich:ro
+    depends_on:
+      qdrant:
+        condition: service_started
+      database:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - immich-deduper
+    mem_limit: ${DEDUP_MEM_LIMIT:-4g}
+    cpus: ${DEDUP_CPUS:-4}
+
+  qdrant:
+    container_name: immich_deduper_qdrant
+    image: qdrant/qdrant:v1.16.3
+    restart: unless-stopped
+    volumes:
+      - ${DEDUP_DATA}/qdrant:/qdrant/storage
+    networks:
+      - immich-deduper
+    mem_limit: ${QDRANT_MEM_LIMIT:-2g}
+
+networks:
+  immich-deduper:
+    name: immich-deduper

@@ -1,26 +1,19 @@
-# Immich — Docker Desktop (Windows). All settings via Admin UI (no config file).
+# Immich — Docker Desktop (Windows). Settings via Admin UI (no config file).
 # https://docs.immich.app/install/docker-compose
+#
+# Core Immich stack below. Add-ons (same folder — paths in .env stay ./library, ./data, …):
+#   docker-compose.deduper.yml    — immich-deduper + Qdrant (included by default)
+#   docker-compose.optimizer.yml  — upload compression (--profile optimizer)
+#
+# Playbooks: docs/RECIPES.md
+
 name: immich
 
-services:
-  # Upload proxy: compresses images before they reach immich-server (http://localhost:2283)
-  immich-upload-optimizer:
-    container_name: immich_upload_optimizer
-    image: ghcr.io/miguelangel-nubla/immich-upload-optimizer:${IUO_VERSION:-latest}
-    ports:
-      - "${IMMICH_HOST_PORT:-2283}:2283"
-    volumes:
-      - ${IUO_CONFIG_DIR:-./optimizer-config}:/config:ro
-    environment:
-      IUO_UPSTREAM: http://immich-server:2283
-      IUO_TASKS_FILE: /config/tasks.yaml
-    depends_on:
-      immich-server:
-        condition: service_healthy
-    restart: unless-stopped
-    mem_limit: ${IUO_MEM_LIMIT:-2g}
-    cpus: ${IUO_CPUS:-4}
+include:
+  - path: docker-compose.deduper.yml
+  - path: docker-compose.optimizer.yml
 
+services:
   immich-server:
     container_name: immich_server
     image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
@@ -34,14 +27,14 @@ services:
       REDIS_HOSTNAME: redis
       DB_STORAGE_TYPE: SSD
       IMMICH_PORT: "2283"
-      # Cap cores Immich uses for job scheduling (Xeon 12C — avoid oversubscription)
       CPU_CORES: ${IMMICH_CPU_CORES:-8}
       CHOKIDAR_USEPOLLING: "true"
       CHOKIDAR_INTERVAL: "1000"
     volumes:
       - ${UPLOAD_LOCATION}:/data
       - ${EXTERNAL_LIBRARY_PATH}:/photos-import:ro
-    # Port 2283 exposed only via immich-upload-optimizer (not host-mapped here)
+    ports:
+      - "${IMMICH_HOST_PORT:-2283}:2283"
     depends_on:
       redis:
         condition: service_healthy
@@ -52,31 +45,21 @@ services:
     healthcheck:
       disable: false
 
-  # GPU-first ML (release-rocm). On WSL, if HIP cannot see the GPU, ONNX falls back to CPU automatically.
-  # After reboot: .\scripts\enable-wsl-gpu.ps1 — verify logs lack "Falling back to ['CPUExecutionProvider']".
   immich-machine-learning:
     container_name: immich_machine_learning
-    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}-rocm
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
     env_file:
       - .env
-    group_add:
-      - video
-    devices:
-      - /dev/dri:/dev/dri
-      - /dev/dxg:/dev/dxg
     volumes:
       - ${MODEL_CACHE_LOCATION}:/cache
-      - /usr/lib/wsl/lib/libdxcore.so:/usr/lib/libdxcore.so:ro
     environment:
       IMMICH_PORT: "3003"
-      HSA_OVERRIDE_GFX_VERSION: ${HSA_OVERRIDE_GFX_VERSION:-10.3.0}
-      HSA_USE_SVM: ${HSA_USE_SVM:-0}
     restart: unless-stopped
     stop_grace_period: 2m
     healthcheck:
       disable: false
-    mem_limit: ${ML_MEM_LIMIT_GPU:-8g}
-    cpus: ${ML_CPUS_GPU:-6}
+    mem_limit: ${ML_MEM_LIMIT:-6g}
+    cpus: ${ML_CPUS:-4}
 
   redis:
     container_name: immich_redis
@@ -111,44 +94,6 @@ services:
     restart: unless-stopped
     healthcheck:
       disable: false
+    mem_limit: ${DB_MEM_LIMIT:-4g}
     networks:
       - default
-      - immich-deduper
-    mem_limit: ${DB_MEM_LIMIT:-4g}
-
-  # https://github.com/RazgrizHsu/immich-deduper — same-host setup
-  immich-deduper:
-    image: ${DEDUP_IMAGE:-razgrizhsu/immich-deduper:latest-cpu}
-    container_name: immich_deduper
-    env_file:
-      - .env
-    ports:
-      - "${DEDUP_PORT:-8086}:8086"
-    volumes:
-      - ${DEDUP_DATA}:/app/data
-      - ${DEDUP_DATA}/cache:/root/.cache/torch/
-      - ${UPLOAD_LOCATION}:/immich:ro
-    depends_on:
-      qdrant:
-        condition: service_started
-      database:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - immich-deduper
-    mem_limit: ${DEDUP_MEM_LIMIT:-4g}
-    cpus: ${DEDUP_CPUS:-4}
-
-  qdrant:
-    container_name: immich_deduper_qdrant
-    image: qdrant/qdrant:v1.16.3
-    restart: unless-stopped
-    volumes:
-      - ${DEDUP_DATA}/qdrant:/qdrant/storage
-    networks:
-      - immich-deduper
-    mem_limit: ${QDRANT_MEM_LIMIT:-2g}
-
-networks:
-  immich-deduper:
-    name: immich-deduper

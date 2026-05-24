@@ -1,20 +1,37 @@
 # Lossy image compression before Immich stores files.
-# Caesium: quality 80 (~80% smaller vs original, high perceived quality), EXIF + dates kept.
+# ImageMagick + exiftool: write-new-then-replace (avoids in-place corruption under load).
+# JPEG/WebP q=85 — strong quality/size balance. PNG max deflate. EXIF + dates preserved.
 # See: https://github.com/miguelangel-nubla/immich-upload-optimizer/blob/main/TASKS.md
 
 tasks:
-  - name: caesium-lossy-80-exif
-    command: caesiumclt --keep-dates --exif --quality=80 --output={{.folder}} {{.folder}}/{{.name}}.{{.extension}}
+  - name: imagemagick-jpeg-85-exif
+    command: magick {{.folder}}/{{.name}}.{{.extension}} -auto-orient -quality 85 -sampling-factor 4:2:0 -strip {{.folder}}/{{.name}}-new.{{.extension}} && exiftool -tagsFromFile {{.folder}}/{{.name}}.{{.extension}} -all:all -overwrite_original {{.folder}}/{{.name}}-new.{{.extension}} && rm -f {{.folder}}/{{.name}}.{{.extension}} && mv {{.folder}}/{{.name}}-new.{{.extension}} {{.folder}}/{{.name}}.{{.extension}}
     extensions:
       - jpeg
       - jpg
+
+  - name: imagemagick-png-exif
+    command: magick {{.folder}}/{{.name}}.{{.extension}} -strip -define png:compression-level=9 {{.folder}}/{{.name}}-new.{{.extension}} && exiftool -tagsFromFile {{.folder}}/{{.name}}.{{.extension}} -all:all -overwrite_original {{.folder}}/{{.name}}-new.{{.extension}} && rm -f {{.folder}}/{{.name}}.{{.extension}} && mv {{.folder}}/{{.name}}-new.{{.extension}} {{.folder}}/{{.name}}.{{.extension}}
+    extensions:
       - png
+
+  - name: imagemagick-webp-85-exif
+    command: magick {{.folder}}/{{.name}}.{{.extension}} -quality 85 -strip {{.folder}}/{{.name}}-new.{{.extension}} && exiftool -tagsFromFile {{.folder}}/{{.name}}.{{.extension}} -all:all -overwrite_original {{.folder}}/{{.name}}-new.{{.extension}} && rm -f {{.folder}}/{{.name}}.{{.extension}} && mv {{.folder}}/{{.name}}-new.{{.extension}} {{.folder}}/{{.name}}.{{.extension}}
+    extensions:
+      - webp
+
+  - name: imagemagick-tiff-85-exif
+    command: magick {{.folder}}/{{.name}}.{{.extension}} -auto-orient -quality 85 -compress jpeg -strip {{.folder}}/{{.name}}-new.{{.extension}} && exiftool -tagsFromFile {{.folder}}/{{.name}}.{{.extension}} -all:all -overwrite_original {{.folder}}/{{.name}}-new.{{.extension}} && rm -f {{.folder}}/{{.name}}.{{.extension}} && mv {{.folder}}/{{.name}}-new.{{.extension}} {{.folder}}/{{.name}}.{{.extension}}
+    extensions:
       - tiff
       - tif
-      - webp
+
+  - name: imagemagick-gif-optimize
+    command: magick {{.folder}}/{{.name}}.{{.extension}} -coalesce -layers optimize -strip {{.folder}}/{{.name}}-new.{{.extension}} && exiftool -tagsFromFile {{.folder}}/{{.name}}.{{.extension}} -all:all -overwrite_original {{.folder}}/{{.name}}-new.{{.extension}} && rm -f {{.folder}}/{{.name}}.{{.extension}} && mv {{.folder}}/{{.name}}-new.{{.extension}} {{.folder}}/{{.name}}.{{.extension}}
+    extensions:
       - gif
 
-  # Formats Immich accepts but Caesium does not handle safely here — upload unchanged (metadata intact).
+  # Formats Immich accepts but we do not recompress here — upload unchanged.
   - name: passthrough-images
     command: ""
     extensions:
@@ -36,7 +53,7 @@ tasks:
       - pfm
       - exr
 
-  # Videos unchanged (lossy transcode is optional; disabled to preserve originals + metadata).
+  # Videos unchanged.
   - name: passthrough-videos
     command: ""
     extensions:

@@ -1,9 +1,10 @@
-# User data & runtime
+# User data & runtime (paths in .env are relative to project root)
 library/
 dedup-data/
 data/
 postgres/
 pgdata/
+compose/
 
 # Secrets
 .env
@@ -17,5 +18,4 @@ pgdata/
 
 # Deprecated / junk (do not re-add)
 install.cmd
-docker-compose.gpu-test.yml
 config/

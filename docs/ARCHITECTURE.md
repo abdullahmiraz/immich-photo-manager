@@ -12,22 +12,24 @@ flowchart TB
 
   subgraph compose [docker compose project: immich]
     subgraph default_net [network: default]
-      Optimizer[immich_upload_optimizer :2283]
-      Server[immich_server internal]
+      Server[immich_server :2283]
       ML[immich_machine_learning]
       Redis[immich_redis]
       DB[(immich_postgres)]
     end
-    subgraph dedup_net [network: immich-deduper external]
+    subgraph dedup_net [network: immich-deduper]
       Deduper[immich_deduper :8086]
       Qdrant[immich_deduper_qdrant]
       DB
     end
+    subgraph optional [profile: optimizer — optional]
+      Optimizer[immich_upload_optimizer :2283]
+    end
   end
 
-  Browser --> Optimizer
+  Browser --> Server
   Browser --> Deduper
-  Optimizer --> Server
+  Optimizer -.->|when enabled| Server
   Server --> Redis
   Server --> ML
   Server --> DB
@@ -37,6 +39,18 @@ flowchart TB
   Deduper --> Library
   Deduper --> DedupData
 ```
+
+## Compose modules (reusable)
+
+Root `docker-compose.yml` only `include`s modules — like composing UI from building blocks:
+
+| Module | File | When loaded |
+|--------|------|-------------|
+| **Base** | `docker-compose.yml` | Always — server, ML, Redis, Postgres |
+| **Deduper** | `docker-compose.deduper.yml` | Included by default |
+| **Upload optimizer** | `docker-compose.optimizer.yml` | `--profile optimizer` |
+
+Add-ons sit next to `docker-compose.yml` so `.env` paths (`./library`, `./dedup-data`) resolve correctly.
 
 ## Service dependencies
 
@@ -57,22 +71,27 @@ database ──► immich-deduper (after healthy)
 | immich-server | `${EXTERNAL_LIBRARY_PATH}` | `/photos-import` | ro |
 | immich-deduper | `${UPLOAD_LOCATION}` | `/immich` | ro |
 | immich-deduper | `${DEDUP_DATA}` | `/app/data` | rw |
-| database | volume `pgdata` | `/var/lib/postgresql/data` | rw |
+| database | `${DB_DATA_LOCATION}` | `/var/lib/postgresql/data` | rw |
+| immich-machine-learning | `${MODEL_CACHE_LOCATION}` | `/cache` | rw |
+| redis | `${REDIS_DATA_LOCATION}` | `/data` | rw |
 
 ## Two duplicate workflows
 
 | Tool | URL | Mechanism |
 |------|-----|-----------|
-| **Immich built-in** | `/utilities/duplicates` | Smart search / CLIP embeddings via Immich ML |
-| **immich-deduper** | http://localhost:8086 | ResNet152 + Qdrant; direct Postgres + file access |
-
-Both can coexist; deduper is heavier but often better for large visual similarity sets.
+| **Immich built-in** | `/utilities/duplicates` | Smart search / CLIP via Immich ML |
+| **immich-deduper** | http://localhost:8086 | ResNet152 + Qdrant; Postgres + files |
 
 ## Configuration source of truth
 
 | Setting type | Where |
 |--------------|--------|
-| Infra (ports, images, volumes) | `docker-compose.yml` + `.env` |
-| Immich jobs, ffmpeg, features | **Immich Admin UI** only |
+| Infra (ports, images, volumes) | `compose/` + `.env` |
+| Immich jobs, ffmpeg, features | **Admin UI** only |
 | Deduper tuning | Deduper UI + `.env` (`PSQL_*`, `QDRANT_URL`) |
-| Historical Immich export | `setup/immich-config.json` (not loaded) |
+| Job caps reference | `setup/safe-job-settings.json` → apply in Admin UI |
+| Historical export | `setup/immich-config.json` (not loaded) |
+
+## ML
+
+CPU-only: `ghcr.io/immich-app/immich-machine-learning:release`. No GPU/ROCm on this stack.
