@@ -18,6 +18,8 @@ cd "D:\code\duplicate image remover\immich"
 | [Disable upload optimizer](#disable-upload-optimizer) | Default — direct uploads |
 | [Upgrade Immich](#upgrade-immich) | New release |
 | [Reset job settings UI](#reset-job-settings-ui) | Greyed-out Admin job settings |
+| [Update stack (keep containers)](#update-stack-keep-containers) | Upgrade images without removing services |
+| [Docker disk (C: vs D:)](#docker-disk-c-vs-d) | WSL disk bloat, safe cleanup, where data lives |
 
 ---
 
@@ -138,7 +140,7 @@ Optimizer is **off** by default — use port **2283** (direct server).
 **Windows (project root):**
 
 ```powershell
-.\immich-go.exe upload from-folder `
+.\immich-go\immich-go.exe upload from-folder `
   --server="http://localhost:2283" `
   --api-key="YOUR_API_KEY" `
   --concurrent-tasks=2 `
@@ -152,7 +154,7 @@ Optimizer is **off** by default — use port **2283** (direct server).
 **Git Bash:**
 
 ```bash
-./immich-go.exe upload from-folder \
+./immich-go/immich-go.exe upload from-folder \
   --server="http://localhost:2283" \
   --api-key="YOUR_API_KEY" \
   --concurrent-tasks=2 \
@@ -203,14 +205,54 @@ docker compose up -d --force-recreate immich-server
 
 ---
 
-## Upgrade Immich
+## Update stack (keep containers)
+
+**Required services** (do not remove; only update in place):
+
+| Container | Service | Role |
+|-----------|---------|------|
+| `immich_server` | immich-server | Web + API :2283 |
+| `immich_machine_learning` | immich-machine-learning | CPU ML |
+| `immich_postgres` | database | Postgres |
+| `immich_redis` | redis | Job queue |
+| `immich_deduper` | immich-deduper | Duplicate UI :8086 |
+| `immich_deduper_qdrant` | qdrant | Deduper vectors |
+
+Optional (only with `--profile optimizer`): `immich_upload_optimizer`.
+
+**Upgrade / recreate** (same containers, new image layers; bind mounts unchanged):
 
 ```powershell
 docker compose pull
 docker compose up -d
 ```
 
-Pin version in `.env`: `IMMICH_VERSION=v2` (or `release`).
+After `.env` changes:
+
+```powershell
+docker compose up -d --force-recreate
+```
+
+**Do not run on this project** (removes containers and/or all images — forces full re-pull):
+
+```powershell
+# docker compose down          # removes project containers
+# docker system prune -a       # deletes all unused images
+# docker image prune -a        # deletes images not used by a container
+```
+
+Pin version in `.env`: `IMMICH_VERSION=release` (or a specific tag).
+
+---
+
+## Upgrade Immich
+
+Same as [Update stack (keep containers)](#update-stack-keep-containers):
+
+```powershell
+docker compose pull
+docker compose up -d
+```
 
 ---
 
@@ -236,3 +278,44 @@ Then set jobs in the Admin UI (do **not** mount `immich.json` at runtime).
 | `docker-compose.optimizer.yml` | Upload proxy (`--profile optimizer`) |
 
 Add future add-ons as `docker-compose.<name>.yaml` in the project root and add to `include:` in `docker-compose.yml`.
+
+---
+
+## Docker disk (C: vs D:)
+
+**Where things live (optimized layout):**
+
+| What | Location | Size (typical) |
+|------|----------|----------------|
+| Docker engine + images | `C:\Users\<you>\AppData\Local\Docker\wsl` | ~10–15 GB |
+| Photos, DB, Redis, ML cache | Project folder `./library`, `./data/*` on **D:** | Your library size |
+| Deduper data | `./dedup-data` on **D:** | Varies |
+
+Do **not** set Docker Desktop **Disk image location** to `D:\Docker` unless C: is critically low. A custom location plus deleted images leaves a **bloated `.vhdx`** that does not shrink by itself.
+
+**Safe cleanup** (keeps required containers running; photos/DB are bind mounts):
+
+```powershell
+# Only remove stopped/orphan containers — NOT the immich_* stack
+docker container prune -f
+
+# Only dangling (untagged) image layers — does not remove images in use by the stack
+docker image prune -f
+```
+
+**Never** run `docker compose down`, `docker system prune -a`, or `docker image prune -a` unless you intend to tear down the stack and re-pull all images.
+
+**If `docker_data.vhdx` on C: grows huge** after many pulls/upgrades: quit Docker Desktop, run `wsl --shutdown`, then compact (Admin PowerShell):
+
+```powershell
+Optimize-VHD -Path "$env:LOCALAPPDATA\Docker\wsl\disk\docker_data.vhdx" -Mode Full
+```
+
+Or reset the engine disk (re-pull images only; `./library` and `./data` stay):
+
+```powershell
+# Quit Docker Desktop first, then:
+wsl --shutdown
+Remove-Item -Recurse -Force "$env:LOCALAPPDATA\Docker\wsl"
+# Start Docker Desktop, then: docker compose pull && docker compose up -d
+```

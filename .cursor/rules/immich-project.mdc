@@ -15,6 +15,7 @@ Infrastructure-only repo. Read `AGENTS.md` then `docs/STATE.md` before edits.
 - Hardcode `D:\...` paths in compose (use `.env` vars)
 - Read or modify `library/`, `dedup-data/` unless task requires it
 - Add GPU/ROCm/OpenVINO ML overlays (CPU `release` only on this stack)
+- Run `docker compose down`, `docker system prune -a`, or `docker image prune -a` (removes required stack; use `pull` + `up -d` to update only)
 
 ## Must
 
@@ -24,6 +25,7 @@ Infrastructure-only repo. Read `AGENTS.md` then `docs/STATE.md` before edits.
 - Update `docs/STATE.md` after behavior-changing changes
 - Use `docker compose stop -t 120` for graceful shutdown
 - Put operator commands in `docs/RECIPES.md`, not new `.ps1` scripts
+- Update stack via `docker compose pull` + `docker compose up -d` — keep all six required containers (`immich_server`, `immich_machine_learning`, `immich_postgres`, `immich_redis`, `immich_deduper`, `immich_deduper_qdrant`)
 
 ## Files to edit for infra changes
 

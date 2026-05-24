@@ -1,6 +1,6 @@
 # Project state (continuity for humans & agents)
 
-Last updated: 2026-05-23
+Last updated: 2026-05-24
 
 ## Current stack (intended)
 
@@ -49,6 +49,13 @@ Operator commands: **`docs/RECIPES.md`** (no PowerShell scripts in repo).
 | `./library` | Immich media |
 | `./dedup-data` | Deduper + Qdrant |
 | `./data/pgdata`, `./data/redis`, `./data/model-cache` | DB, Redis, ML cache |
+
+## Docker disk (2026-05-24)
+
+- **Removed** `customWslDistroDir: D:\Docker\wsl` — engine back on default `C:\Users\neo\AppData\Local\Docker\wsl`.
+- **Deleted** bloated `D:\Docker` (~102 GB VHDX; mostly historical image/layer bloat, not photos).
+- **Keep** Immich media/DB on D: via bind mounts (`./library`, `./data/*`) — unchanged.
+- **Maintenance:** update with `docker compose pull` + `up -d` only; never `compose down` / `prune -a` on this stack. Use `docker image prune -f` (dangling only) or compact VHDX (RECIPES → Docker disk).
 
 ## Open follow-ups
 

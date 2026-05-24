@@ -51,7 +51,8 @@ Host path: `library/upload/external`.
 | Storage Template Migration on Windows bind mounts | Needs ~1× library size free on D:; often **copies** files |
 | Parallel Immich jobs | Cap concurrency — RECIPES → Before heavy jobs |
 | Deduper + Immich together | Stop deduper before heavy Immich work |
-| Docker WSL disk on C: | Keep `./data/` bind mounts on D: |
+| Docker WSL disk bloat | Default location `C:\Users\<you>\AppData\Local\Docker\wsl`; prune images — RECIPES → Docker disk |
+| Large library on D: | Keep `./library` and `./data/` bind mounts on D: (not inside Docker VHDX) |
 
 ---
 

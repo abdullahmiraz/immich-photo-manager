@@ -6,6 +6,11 @@
 #   docker-compose.optimizer.yml  — upload compression (--profile optimizer)
 #
 # Playbooks: docs/RECIPES.md
+#
+# Required containers (do not remove via prune/down — update only):
+#   immich_server, immich_machine_learning, immich_postgres, immich_redis,
+#   immich_deduper, immich_deduper_qdrant
+# Upgrade: docker compose pull && docker compose up -d
 
 name: immich
 

@@ -49,15 +49,16 @@ immich/
 5. **ML is CPU-only** — `release` image; no ROCm/GPU devices or overlays.
 6. **Do not set `IMMICH_PORT` in `.env`** — compose sets server=2283, ML=3003 per service.
 7. **`setup/`** is reference backup only.
+8. **Never remove required stack containers** — update with `docker compose pull` + `up -d` only. Do **not** run `docker compose down`, `docker system prune -a`, or `docker image prune -a` for this project (see RECIPES → Update stack).
 
 ## Common tasks
 
 See **[docs/RECIPES.md](docs/RECIPES.md)** for all commands. Short form:
 
 ```powershell
-docker compose up -d
-docker compose stop -t 120
-docker compose up -d --force-recreate
+docker compose pull && docker compose up -d   # update images, keep stack
+docker compose stop -t 120                    # graceful pause only
+docker compose up -d --force-recreate         # after .env change
 ```
 
 ## When editing compose
