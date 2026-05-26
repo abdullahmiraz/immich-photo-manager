@@ -10,6 +10,7 @@ cd "D:\code\duplicate image remover\immich"
 |--------|------|
 | [First-time setup](#first-time-setup) | New install |
 | [Start / stop / status](#start--stop--status) | Daily use |
+| [Port 2283 blocked (Windows)](#port-2283-blocked-windows) | `immich_server` Created; bind forbidden on :2283 |
 | [Verify health](#verify-health) | After start or changes |
 | [Recreate after `.env` change](#recreate-after-env-change) | Edited `.env` |
 | [Before heavy Immich jobs](#before-heavy-immich-jobs) | Storage migration, large scans |
@@ -67,6 +68,37 @@ docker compose ps
 docker compose logs -f
 docker logs -f immich_server
 docker logs -f immich_deduper
+```
+
+---
+
+## Port 2283 blocked (Windows)
+
+**Symptom:** `docker compose up` succeeds for postgres/redis/ML but `immich_server` stays `Created` or fails with:
+
+`listen tcp 0.0.0.0:2283: bind: ... forbidden by its access permissions`
+
+**Cause:** Windows reserved TCP range includes 2283 (check: `netsh interface ipv4 show excludedportrange protocol=tcp` — look for `2280`–`2379`).
+
+**Fix (keep host port 2283):** Run **elevated** PowerShell (Approve UAC), then:
+
+```powershell
+cd "D:\code\duplicate image remover\immich"
+net stop winnat
+docker compose up -d immich-server
+net start winnat
+Invoke-RestMethod http://localhost:2283/api/server/ping
+```
+
+If `immich_server` was recreated on another host port earlier, `docker compose up -d immich-server` restores `IMMICH_HOST_PORT=2283` from `.env`.
+
+**After reboot:** The exclusion may return. Repeat the elevated block above before starting Immich, or apply a one-time wider dynamic port range (admin, then reboot):
+
+```powershell
+netsh int ipv4 set dynamicport tcp start=49152 num=16384
+netsh int ipv6 set dynamicport udp start=49152 num=16384
+net stop winnat
+net start winnat
 ```
 
 ---

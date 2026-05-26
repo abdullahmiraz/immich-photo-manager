@@ -1,6 +1,6 @@
 # Project state (continuity for humans & agents)
 
-Last updated: 2026-05-24
+Last updated: 2026-05-26
 
 ## Current stack (intended)
 
@@ -41,6 +41,7 @@ Operator commands: **`docs/RECIPES.md`** (no PowerShell scripts in repo).
 | ML `fetch failed` | `IMMICH_PORT` in `.env` | Remove from `.env`; compose sets per service |
 | Bulk upload stalls on :2283 | Upload optimizer + high concurrency | Optimizer off; immich-go on :2283 direct |
 | Deduper pull denied | `ghcr.io/razgrizhsu/...` | Use Docker Hub `razgrizhsu/immich-deduper:latest-cpu` |
+| `immich_server` won't bind :2283 | Windows excluded range 2280–2379 | RECIPES → Port 2283 blocked (elevated `net stop winnat`, then `compose up`) |
 
 ## Data locations (gitignored)
 
