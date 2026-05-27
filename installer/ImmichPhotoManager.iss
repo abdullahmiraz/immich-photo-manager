@@ -38,7 +38,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut to the manager"; GroupDescription: "Shortcuts:"; Flags: unchecked
-Name: "launchstack"; Description: "Pull images and start Docker stack after install"; GroupDescription: "Setup:"; Flags: checked
+; Tasks are checked by default in Inno Setup (no "checked" flag exists)
+Name: "launchstack"; Description: "Pull images and start Docker stack after install"; GroupDescription: "Setup:"
 
 [Files]
 Source: "{#RepoRoot}\docker-compose.yml"; DestDir: "{app}"; Flags: ignoreversion
