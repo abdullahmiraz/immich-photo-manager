@@ -4,7 +4,7 @@ Self-hosted photo library ([Immich](https://immich.app)) with [immich-deduper](h
 
 | App | URL |
 |-----|-----|
-| Immich | http://localhost:2283 |
+| Immich | http://localhost:2283 (upload optimizer: Caesium images, videos passthrough) |
 | immich-deduper | http://localhost:8086 |
 
 ## Quick start
@@ -34,7 +34,7 @@ docker-compose.yml           # core Immich
 docker-compose.deduper.yml   # add-on (included)
 docker-compose.optimizer.yml # add-on (optional profile)
 .env.example
-optimizer-config/        # upload optimizer tasks (optional profile)
+optimizer-config/        # Caesium upload tasks (COMPOSE_PROFILES=optimizer)
 setup/                   # backup only
 library/                 # photos (gitignored)
 dedup-data/              # deduper data (gitignored)

@@ -7,7 +7,10 @@ services:
   immich-upload-optimizer:
     profiles: ["optimizer"]
     container_name: immich_upload_optimizer
-    image: ghcr.io/miguelangel-nubla/immich-upload-optimizer:${IUO_VERSION:-latest}
+    build:
+      context: ./optimizer
+      dockerfile: Dockerfile
+    image: immich-upload-optimizer-patched:${IUO_VERSION:-v0.5.3}
     ports:
       - "${IMMICH_HOST_PORT:-2283}:2283"
     volumes:
@@ -20,4 +23,4 @@ services:
         condition: service_healthy
     restart: unless-stopped
     mem_limit: ${IUO_MEM_LIMIT:-4g}
-    cpus: ${IUO_CPUS:-4}
+    cpus: ${IUO_CPUS:-2}

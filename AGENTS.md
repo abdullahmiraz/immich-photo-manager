@@ -18,7 +18,7 @@ Self-hosted **Immich** photo library + **immich-deduper** for visual duplicate f
 
 | URL | Service |
 |-----|---------|
-| http://localhost:2283 | Immich (direct server; optimizer off by default) |
+| http://localhost:2283 | Immich (via upload optimizer — Caesium on images) |
 | http://localhost:8086 | immich-deduper UI |
 
 ## Repo map (tracked files only)

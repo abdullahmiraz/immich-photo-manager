@@ -15,8 +15,9 @@ cd "D:\code\duplicate image remover\immich"
 | [Recreate after `.env` change](#recreate-after-env-change) | Edited `.env` |
 | [Before heavy Immich jobs](#before-heavy-immich-jobs) | Storage migration, large scans |
 | [immich-go bulk upload](#immich-go-bulk-upload) | Import from disk |
-| [Enable upload optimizer](#enable-upload-optimizer) | Optional ImageMagick compression |
-| [Disable upload optimizer](#disable-upload-optimizer) | Default — direct uploads |
+| [Upload optimizer stability](#upload-optimizer-stability) | Before batch uploads with optimizer on |
+| [Enable upload optimizer](#enable-upload-optimizer) | Re-enable after disable |
+| [Disable upload optimizer](#disable-upload-optimizer) | Direct server on :2283, no compression |
 | [Upgrade Immich](#upgrade-immich) | New release |
 | [Reset job settings UI](#reset-job-settings-ui) | Greyed-out Admin job settings |
 | [Update stack (keep containers)](#update-stack-keep-containers) | Upgrade images without removing services |
@@ -167,7 +168,7 @@ docker compose start immich-deduper
 
 ## immich-go bulk upload
 
-Optimizer is **off** by default — use port **2283** (direct server).
+Uploads go through the optimizer on **2283** when `COMPOSE_PROFILES=optimizer` (default in `.env.example`). For direct server only, see [Disable upload optimizer](#disable-upload-optimizer).
 
 **Windows (project root):**
 
@@ -203,32 +204,83 @@ Re-run the same command after interruption — already-uploaded files are skippe
 
 ---
 
-## Enable upload optimizer
+## Upload optimizer stability
 
-Optional ImageMagick compression (`optimizer-config/tasks.yaml`). **Only one service can bind host :2283.**
+Use before uploading **5+ files at once** (images + videos) with the optimizer on.
 
-**1. Comment out** `immich-server` `ports:` in `docker-compose.yml`:
-
-```yaml
-    # ports:
-    #   - "${IMMICH_HOST_PORT:-2283}:2283"
-```
-
-**2. Start with optimizer profile:**
+**1. Optional — reduce contention:**
 
 ```powershell
-docker compose --profile optimizer up -d --force-recreate
+docker compose stop immich-deduper
 ```
 
-**3. Verify:** http://localhost:2283 (traffic goes through optimizer → server).
+**2. Cap Immich job concurrency** — Administration → **Settings** → **Job Settings**, use `setup/safe-job-settings.json` (especially `thumbnailGeneration` 2, `smartSearch` 2).
+
+**3. Config in use:** `optimizer-config/tasks.yaml` — **Caesium** q=85 for JPEG/PNG/WebP/GIF/TIFF; **videos passthrough** (no HandBrake). Uppercase extensions (`MP4`, `MOV`, …) are listed for phone filenames.
+
+**4. Patched optimizer image** (`optimizer/Dockerfile`) — disables IUO’s redirect wait page so the Immich web UI gets a direct upload response (avoids `redirect was not followed` / `unexpected EOF` on parallel uploads). Rebuild after pull: `docker compose build immich-upload-optimizer`.
+
+**5. Duplicate / “clone” images in the same batch** — Caesium produces the same bytes for the same source photo, so Immich may log `duplicate key value violates unique constraint "UQ_assets_owner_checksum"` for a file already in the library (or uploaded earlier in the batch). That single item is skipped; **other files should still upload** once the patched optimizer is running. If the UI still aborts the whole batch, upload in smaller groups (e.g. 2–3 at a time) or remove the earlier copy from Immich first.
+
+**6. After uploads:** `docker compose start immich-deduper` if stopped.
+
+If :2283 bind fails on Windows, see [Port 2283 blocked (Windows)](#port-2283-blocked-windows).
+
+**Test video passthrough (optional):**
+
+```powershell
+curl -sS -o NUL -w "http_code:%{http_code}\n" -X POST "http://localhost:2283/api/assets" `
+  -H "Accept: application/json" `
+  -F "assetData=@library\library\admin\2026\05\VID_20260516_233658548.mp4"
+docker compose logs immich-upload-optimizer --tail 20
+```
+
+Expect log line `file NOT replaced` for the `.mp4` (passthrough). A `401` without an API key is normal; the optimizer still processed the file.
+
+---
+
+## Enable upload optimizer
+
+Caesium compression via `immich-upload-optimizer` (`optimizer-config/tasks.yaml`). **Only one service can bind host :2283.**
+
+Repo default: `immich-server` host `ports:` commented out; `COMPOSE_PROFILES=optimizer` in `.env`.
+
+**1. In `.env`:**
+
+```env
+COMPOSE_PROFILES=optimizer
+IUO_VERSION=v0.5.3
+IUO_CPUS=2
+```
+
+**2. Ensure** `immich-server` `ports:` are commented in `docker-compose.yml` (committed default).
+
+**3. Build patched optimizer and recreate stack:**
+
+```powershell
+docker compose build immich-upload-optimizer
+docker compose pull
+docker compose up -d --force-recreate
+docker compose ps
+Invoke-RestMethod http://localhost:2283/api/server/ping
+```
+
+**4. Verify:** http://localhost:2283 — uploads hit optimizer → server. Logs: `docker compose logs immich-upload-optimizer --tail 50`.
 
 ---
 
 ## Disable upload optimizer
 
-**1. Restore** `immich-server` `ports:` in `docker-compose.yml`.
+**1. In `.env`:** remove or comment `COMPOSE_PROFILES=optimizer`.
 
-**2. Recreate without optimizer profile:**
+**2. Restore** `immich-server` `ports:` in `docker-compose.yml`:
+
+```yaml
+    ports:
+      - "${IMMICH_HOST_PORT:-2283}:2283"
+```
+
+**3. Recreate:**
 
 ```powershell
 docker compose stop immich-upload-optimizer
@@ -250,7 +302,7 @@ docker compose up -d --force-recreate immich-server
 | `immich_deduper` | immich-deduper | Duplicate UI :8086 |
 | `immich_deduper_qdrant` | qdrant | Deduper vectors |
 
-Optional (only with `--profile optimizer`): `immich_upload_optimizer`.
+With `COMPOSE_PROFILES=optimizer`: `immich_upload_optimizer` (required for :2283 UI).
 
 **Upgrade / recreate** (same containers, new image layers; bind mounts unchanged):
 

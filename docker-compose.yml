@@ -38,8 +38,9 @@ services:
     volumes:
       - ${UPLOAD_LOCATION}:/data
       - ${EXTERNAL_LIBRARY_PATH}:/photos-import:ro
-    ports:
-      - "${IMMICH_HOST_PORT:-2283}:2283"
+    # Host :2283 published by immich-upload-optimizer when COMPOSE_PROFILES=optimizer (see RECIPES).
+    # ports:
+    #   - "${IMMICH_HOST_PORT:-2283}:2283"
     depends_on:
       redis:
         condition: service_healthy
