@@ -8,6 +8,7 @@ Last updated: 2026-05-27
 - **Installer:** `installer/ImmichPhotoManager.iss` — copies stack, generates `.env` secrets, downloads immich-go, optional `compose up`.
 - **Legal:** MIT (this repo orchestration); see `THIRD_PARTY_NOTICES.md`. HandBrake CLI not redistributed.
 - **IUO image:** default `abdullahmiraz/immich-upload-optimizer-patched:v0.5.3` (Docker Hub); local build via `optimizer/Dockerfile`. Publish: `scripts/publish-optimizer-image.ps1`.
+- **Release CI:** tag `v*` → `.github/scripts/build-release.ps1`. immich-go asset: `immich-go_Windows_x86_64.zip` (see `installer/config.json`). Pre-tag: `verify-release-prereqs.ps1`.
 
 ## Current stack (intended)
 

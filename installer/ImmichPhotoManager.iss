@@ -9,8 +9,9 @@
 #define MyAppURL "https://github.com/abdullahmiraz/immich-photo-manager"
 #define RepoRoot ".."
 
+; CI passes absolute path via /DManagerExe=...
 #ifndef ManagerExe
-#define ManagerExe "..\manager\ImmichPhotoManager\bin\Release\net8.0-windows\win-x64\publish\ImmichPhotoManager.exe"
+#define ManagerExe "..\manager\publish\ImmichPhotoManager.exe"
 #endif
 
 [Setup]

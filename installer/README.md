@@ -5,9 +5,15 @@
 - [Inno Setup 6](https://jrsoftware.org/isinfo.php)
 - .NET 8 SDK (for the manager app)
 
+## Pre-flight (before tagging)
+
+```powershell
+pwsh ./.github/scripts/verify-release-prereqs.ps1
+```
+
 ## Build manager + setup.exe
 
-From repo root:
+From repo root (or CI via `build-release.ps1`):
 
 ```powershell
 dotnet publish manager\ImmichPhotoManager\ImmichPhotoManager.csproj `
