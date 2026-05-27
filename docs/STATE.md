@@ -2,12 +2,19 @@
 
 Last updated: 2026-05-27
 
+## Distribution (Immich Photo Manager)
+
+- **Manager:** `manager/ImmichPhotoManager` — WinForms app, **4 tabs** (deduper, upload optimizer, immich-go, video cleanup); Immich Docker stack in header. Each tab is an independent upstream project.
+- **Installer:** `installer/ImmichPhotoManager.iss` — copies stack, generates `.env` secrets, downloads immich-go, optional `compose up`.
+- **Legal:** MIT (this repo orchestration); see `THIRD_PARTY_NOTICES.md`. HandBrake CLI not redistributed.
+- **IUO image:** default `abdullahmiraz/immich-upload-optimizer-patched:v0.5.3` (Docker Hub); local build via `optimizer/Dockerfile`. Publish: `scripts/publish-optimizer-image.ps1`.
+
 ## Current stack (intended)
 
 | Container | Image | Role |
 |-----------|-------|------|
 | immich_server | `immich-server:release` | API (internal); no host port when optimizer on |
-| immich_upload_optimizer | `immich-upload-optimizer-patched:v0.5.3` (build `optimizer/`) | Caesium images; videos passthrough; direct response (no redirect wait page) |
+| immich_upload_optimizer | `abdullahmiraz/immich-upload-optimizer-patched:v0.5.3` or build `optimizer/` | Caesium images; videos passthrough; direct response (no redirect wait page) |
 | immich_machine_learning | `immich-machine-learning:release` | CPU ONNX |
 | immich_postgres | postgres 14-vectorchord | DB; `default` + `immich-deduper` |
 | immich_redis | valkey:9 | Job queue (`./data/redis`) |

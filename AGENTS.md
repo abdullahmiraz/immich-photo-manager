@@ -20,6 +20,7 @@ Self-hosted **Immich** photo library + **immich-deduper** for visual duplicate f
 |-----|---------|
 | http://localhost:2283 | Immich (via upload optimizer — Caesium on images) |
 | http://localhost:8086 | immich-deduper UI |
+| `ImmichPhotoManager.exe` | 4-tab manager (deduper / optimizer / immich-go / video cleanup) |
 
 ## Repo map (tracked files only)
 
@@ -33,10 +34,13 @@ immich/
 ├── .env.example
 ├── optimizer-config/tasks.yaml ← used only with --profile optimizer
 ├── docs/
+│   ├── SUITE.md                ← installer + 4-tab manager
 │   ├── RECIPES.md              ← step-by-step commands (no scripts)
 │   ├── RUNBOOK.md
 │   ├── STATE.md
 │   └── ARCHITECTURE.md
+├── manager/                    ← WinForms UI (4 companion tabs)
+├── installer/                  ← Inno Setup (packaging only)
 └── setup/                      ← BACKUP ONLY, never mount at runtime
 ```
 

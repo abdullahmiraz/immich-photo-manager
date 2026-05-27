@@ -7,10 +7,13 @@ services:
   immich-upload-optimizer:
     profiles: ["optimizer"]
     container_name: immich_upload_optimizer
+    # Pre-built: abdullahmiraz/immich-upload-optimizer-patched (installer). Local build: optimizer/Dockerfile
+    image: ${IUO_IMAGE:-abdullahmiraz/immich-upload-optimizer-patched:v0.5.3}
     build:
       context: ./optimizer
       dockerfile: Dockerfile
-    image: immich-upload-optimizer-patched:${IUO_VERSION:-v0.5.3}
+      tags:
+        - ${IUO_IMAGE:-abdullahmiraz/immich-upload-optimizer-patched:v0.5.3}
     ports:
       - "${IMMICH_HOST_PORT:-2283}:2283"
     volumes:

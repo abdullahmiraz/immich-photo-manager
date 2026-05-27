@@ -16,6 +16,22 @@ compose/
 .aider/*
 .aider.input.history
 
+# Manager / installer build output
+manager/**/bin/
+manager/**/obj/
+manager/publish/
+installer/output/
+
+# Companion tools (binaries not in git)
+tools/immich-go/immich-go.exe
+tools/immich-go/*.zip
+tools/handbrake/HandBrakeCLI.exe
+tools/video-cleanup/HandBrakeCLI.exe
+
+# Legacy root folders (use tools/ instead)
+/immich-go/
+/video-cleanup/
+
 # Deprecated / junk (do not re-add)
 install.cmd
 config/

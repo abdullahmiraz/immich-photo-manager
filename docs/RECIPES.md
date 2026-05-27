@@ -8,7 +8,9 @@ cd "D:\code\duplicate image remover\immich"
 
 | Recipe | When |
 |--------|------|
-| [First-time setup](#first-time-setup) | New install |
+| [Windows installer & manager](#windows-installer--manager) | setup.exe and 4-tab manager |
+| [First-time setup](#first-time-setup) | New install (manual Compose) |
+| [Video cleanup (HandBrake)](#video-cleanup-handbrake) | Pre-import transcode |
 | [Start / stop / status](#start--stop--status) | Daily use |
 | [Port 2283 blocked (Windows)](#port-2283-blocked-windows) | `immich_server` Created; bind forbidden on :2283 |
 | [Verify health](#verify-health) | After start or changes |
@@ -25,12 +27,29 @@ cd "D:\code\duplicate image remover\immich"
 
 ---
 
+## Windows installer & manager
+
+**Immich Photo Manager** (`ImmichPhotoManager.exe`) — four tabs for companion tools; Immich stack controls in the header.
+
+| Tab | Service |
+|-----|---------|
+| Deduper | http://localhost:8086 |
+| Upload optimizer | http://localhost:2283 |
+| immich-go | `tools\immich-go\immich-go.exe` |
+| Video cleanup | `tools\video-cleanup\optimize.ps1` |
+
+Download setup.exe from GitHub Releases. Full guide: **[docs/SUITE.md](SUITE.md)**.
+
+Start Menu: **Start stack** / **Stop stack** / **Update stack images** run `installer\payload\stack-control.ps1`.
+
+---
+
 ## First-time setup
 
 ```powershell
-cd "D:\code\duplicate image remover\immich"
+cd path\to\immich-photo-manager
 Copy-Item .env.example .env
-# Edit .env: set DB_PASSWORD and PSQL_PASS to the same value
+# Edit .env: set DB_PASSWORD and PSQL_PASS to the same value (not GENERATE_ON_INSTALL)
 
 New-Item -ItemType Directory -Force -Path library, "library\upload\external", dedup-data, data\pgdata, data\redis, data\model-cache
 
@@ -166,6 +185,20 @@ docker compose start immich-deduper
 
 ---
 
+## Video cleanup (HandBrake)
+
+HandBrake CLI is **not** shipped in git or the installer (GPLv2). See [tools/video-cleanup/README.md](../tools/video-cleanup/README.md).
+
+```powershell
+cd path\to\immich-photo-manager\tools\video-cleanup
+# Place HandBrakeCLI.exe in tools\handbrake\ or this folder first
+.\optimize.ps1
+```
+
+Upload from each `encoded\` subfolder via Immich or immich-go.
+
+---
+
 ## immich-go bulk upload
 
 Uploads go through the optimizer on **2283** when `COMPOSE_PROFILES=optimizer` (default in `.env.example`). For direct server only, see [Disable upload optimizer](#disable-upload-optimizer).
@@ -173,7 +206,7 @@ Uploads go through the optimizer on **2283** when `COMPOSE_PROFILES=optimizer` (
 **Windows (project root):**
 
 ```powershell
-.\immich-go\immich-go.exe upload from-folder `
+.\tools\immich-go\immich-go.exe upload from-folder `
   --server="http://localhost:2283" `
   --api-key="YOUR_API_KEY" `
   --concurrent-tasks=2 `
@@ -187,7 +220,7 @@ Uploads go through the optimizer on **2283** when `COMPOSE_PROFILES=optimizer` (
 **Git Bash:**
 
 ```bash
-./immich-go/immich-go.exe upload from-folder \
+./tools/immich-go/immich-go.exe upload from-folder \
   --server="http://localhost:2283" \
   --api-key="YOUR_API_KEY" \
   --concurrent-tasks=2 \

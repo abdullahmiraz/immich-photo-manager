@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows-installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse version from tag
+        id: ver
+        shell: pwsh
+        run: |
+          $t = "${{ github.ref_name }}"
+          $v = $t.TrimStart('v')
+          "version=$v" >> $env:GITHUB_OUTPUT
+          "tag=$t" >> $env:GITHUB_OUTPUT
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Publish manager (single-file exe)
+        run: |
+          dotnet publish manager/ImmichPhotoManager/ImmichPhotoManager.csproj `
+            -c Release -r win-x64 --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:Version=${{ steps.ver.outputs.version }} `
+            -o manager/publish
+
+      - name: Download immich-go for bundle (optional verification)
+        shell: pwsh
+        run: |
+          $ver = "v0.31.0"
+          $zip = "immich-go_0.31.0_windows_amd64.zip"
+          Invoke-WebRequest -Uri "https://github.com/simulot/immich-go/releases/download/$ver/$zip" -OutFile $env:RUNNER_TEMP\$zip
+          Expand-Archive $env:RUNNER_TEMP\$zip -DestinationPath tools/immich-go-ci -Force
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build setup.exe
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" `
+            /DMyAppVersion=${{ steps.ver.outputs.version }} `
+            /DManagerExe=manager\publish\ImmichPhotoManager.exe `
+            installer\ImmichPhotoManager.iss
+
+      - name: SHA256 checksum
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem installer\output\*.exe | Select-Object -First 1
+          $hash = Get-FileHash $exe.FullName -Algorithm SHA256
+          "$($hash.Hash)  $($exe.Name)" | Out-File installer\output\SHA256SUMS.txt -Encoding utf8
+          Get-Content installer\output\SHA256SUMS.txt
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            installer/output/*.exe
+            installer/output/SHA256SUMS.txt
+          generate_release_notes: true
