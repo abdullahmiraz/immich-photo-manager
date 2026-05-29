@@ -36,17 +36,64 @@ Alternative if `cloudflared` runs on the host: `http://localhost:2283` or `host.
 
 Save. DNS is created automatically for the tunnel.
 
-## 2. Start cloudflared with the stack
+## 2. Start cloudflared
+
+### Recommended: Docker Compose (reads token from `.env`)
+
+Do **not** paste the literal text `CLOUDFLARE_TUNNEL_TOKEN` as the token — use the long JWT from the Cloudflare dashboard in `.env`:
+
+```env
+CLOUDFLARE_TUNNEL_TOKEN=eyJhIjoi...paste-real-token-here...
+COMPOSE_PROFILES=optimizer,cloudflare
+```
 
 From project root:
 
 ```powershell
-docker compose up -d
-docker compose ps
+docker compose --profile optimizer --profile cloudflare up -d
 docker compose logs cloudflared --tail 30
 ```
 
-`immich_cloudflared` should be **running**. Test: https://photos.miraz.dev
+Look for **`Registered tunnel connection`** and **`Updated to new configuration`**. If you see repeated `control stream` / `TLS handshake EOF` errors, see **[CLOUDFLARE-FIX.md](CLOUDFLARE-FIX.md)** (Happ VPN `happ-tun` adapter is the usual cause on this PC).
+
+### One-off `docker run` (equivalent)
+
+Cloudflare’s docs show:
+
+```text
+docker run cloudflare/cloudflared:latest tunnel --no-autoupdate run --token <YOUR_TOKEN>
+```
+
+Replace `<YOUR_TOKEN>` with the value from `.env`, and attach the **Immich network** so `immich-upload-optimizer:2283` resolves:
+
+```powershell
+cd path\to\immich-photo-manager
+$token = (Get-Content .env | Where-Object { $_ -match '^CLOUDFLARE_TUNNEL_TOKEN=' }) -replace '^CLOUDFLARE_TUNNEL_TOKEN=',''
+
+docker run --rm --network immich_default `
+  cloudflare/cloudflared:latest `
+  tunnel --no-autoupdate --protocol http2 run --token $token
+```
+
+Stop the compose `cloudflared` first to avoid two connectors fighting:
+
+```powershell
+docker compose --profile cloudflare stop cloudflared
+```
+
+### Fallback: Windows host connector
+
+Use only if Docker `immich_cloudflared` still cannot register after [CLOUDFLARE-FIX.md](CLOUDFLARE-FIX.md) (Happ `happ-tun` off, one connector, fresh token). Host path works when Windows can reach port 7844 but Docker cannot:
+
+```powershell
+winget install Cloudflare.cloudflared
+cd path\to\immich-photo-manager
+.\scripts\run-cloudflared-windows.ps1
+```
+
+Set the dashboard route to **`http://localhost:2283`** (host install) instead of `immich-upload-optimizer:2283`.
+
+`immich_cloudflared` should be **running** (or host `cloudflared`). Test: https://photos.miraz.dev
 
 ## 3. Immich public URL
 
@@ -70,6 +117,18 @@ Zero Trust → **Access** → **Applications** → add **Self-hosted** app:
 
 Visitors must pass Cloudflare Access, then Immich login.
 
+### Google login works, then Error 1033 or blank page again
+
+Access succeeded; the tunnel connector is down or the origin URL is wrong.
+
+1. **Zero Trust → Networks → Tunnels → your tunnel → Connectors** — must show **Connected**.
+2. **Published application routes** → `photos.miraz.dev` → **`http://immich-upload-optimizer:2283`** (Docker connector).
+3. Confirm local: `http://127.0.0.1:2283/api/server/ping` → `{"res":"pong"}`.
+4. If Happ VPN was used: disable **`happ-tun`** adapter (see [CLOUDFLARE-FIX.md](CLOUDFLARE-FIX.md)).
+5. Immich Admin → **Server URL** = `https://photos.miraz.dev`; recreate `immich-server` if you changed `.env`.
+
+See `docs/CLOUDFLARE-FIX.md` for the full checklist.
+
 ## 5. Upload limit (100 MB)
 
 Large phone videos may fail over the tunnel. Options:
@@ -88,14 +147,14 @@ docker compose up -d --force-recreate
 
 ## Troubleshooting
 
-### Tunnel INACTIVE in Cloudflare dashboard
+### Tunnel INACTIVE or degraded in Cloudflare dashboard
 
-Logs like `QUIC connection failed`, `HTTP/2 connection is blocked`, or `TLS handshake with edge error: EOF` mean **outbound** traffic to Cloudflare Tunnel edges (port **7844** UDP/TCP) is blocked — Windows Firewall, antivirus, router, or ISP.
+1. **Happ VPN:** if `happ-tun` adapter is **Up** after closing VPN, disable it (Admin): `Disable-NetAdapter -Name "happ-tun" -Confirm:$false`. See [CLOUDFLARE-FIX.md](CLOUDFLARE-FIX.md).
+2. **One connector only:** disable Windows `Cloudflared` service; kill stray `cloudflared.exe` processes.
+3. Recreate Docker connector: `docker compose --profile cloudflare up -d --force-recreate cloudflared`.
+4. Logs should show **`Registered tunnel connection`**. Route: **`http://immich-upload-optimizer:2283`**.
 
-1. **Windows Firewall** → Allow **Docker Desktop** and outbound for `cloudflared`.
-2. Temporarily test on a **phone hotspot** (rules out ISP blocking).
-3. This repo uses **`--protocol http2`** on `cloudflared` (see `docker-compose.cloudflare.yml`); still requires reachable edge on 7844.
-4. After the connector is **Healthy**, set Public Hostname service URL to **`http://immich-upload-optimizer:2283`**.
+Legacy: outbound **7844** blocked by firewall/ISP — allow Docker Desktop or use host `.\scripts\run-cloudflared-windows.ps1` with route **`http://127.0.0.1:2283`**.
 
 ### Port 2283 on Windows
 

@@ -36,11 +36,13 @@ immich/
 ├── optimizer-config/tasks.yaml ← used only with --profile optimizer
 ├── docs/
 │   ├── SUITE.md                ← installer + 4-tab manager
-│   ├── RECIPES.md              ← step-by-step commands (no scripts)
+│   ├── RECIPES.md              ← step-by-step commands (primary ops)
 │   ├── RUNBOOK.md
 │   ├── STATE.md
 │   ├── REMOTE_ACCESS.md        ← Cloudflare Tunnel
+│   ├── CLOUDFLARE-FIX.md       ← Tunnel troubleshooting (Happ VPN, 1033)
 │   └── ARCHITECTURE.md
+├── scripts/                    ← optional host cloudflared fallback only
 ├── manager/                    ← WinForms UI (4 companion tabs)
 ├── installer/                  ← Inno Setup (packaging only)
 └── setup/                      ← BACKUP ONLY, never mount at runtime

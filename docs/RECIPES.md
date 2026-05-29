@@ -47,7 +47,7 @@ Start Menu: **Start stack** / **Stop stack** / **Update stack images** run `inst
 
 ## Cloudflare Tunnel (miraz.dev)
 
-Full guide: **[docs/REMOTE_ACCESS.md](REMOTE_ACCESS.md)**
+Full guide: **[docs/REMOTE_ACCESS.md](REMOTE_ACCESS.md)** · Troubleshooting: **[docs/CLOUDFLARE-FIX.md](CLOUDFLARE-FIX.md)**
 
 **1. In `.env`:**
 
@@ -55,10 +55,10 @@ Full guide: **[docs/REMOTE_ACCESS.md](REMOTE_ACCESS.md)**
 CLOUDFLARE_TUNNEL_TOKEN=your-token-from-zero-trust
 COMPOSE_PROFILES=optimizer,cloudflare
 IMMICH_SERVER_URL=https://photos.miraz.dev
-IMMICH_TRUSTED_PROXIES=172.16.0.0/12,10.0.0.0/8,127.0.0.1,::1
+IMMICH_TRUSTED_PROXIES=172.16.0.0/12,10.0.0.0/8,127.0.0.1,::1,173.245.48.0/20,103.21.244.0/22,103.22.200.0/22,103.31.4.0/22,141.101.64.0/18,108.162.192.0/18,190.93.240.0/20,188.114.96.0/20,197.234.240.0/22,198.41.128.0/17
 ```
 
-**2. Zero Trust → tunnel → Public Hostname:** HTTP → `host.docker.internal:2283` for `photos.miraz.dev`
+**2. Zero Trust → tunnel → Published application route:** HTTP → `immich-upload-optimizer:2283` for `photos.miraz.dev` (Docker connector). Host fallback: `http://127.0.0.1:2283`.
 
 **3. Start / verify:**
 
@@ -66,6 +66,8 @@ IMMICH_TRUSTED_PROXIES=172.16.0.0/12,10.0.0.0/8,127.0.0.1,::1
 docker compose up -d
 docker compose logs cloudflared --tail 30
 ```
+
+If connector flaps: disable Happ **`happ-tun`** adapter when VPN is off — see **[docs/CLOUDFLARE-FIX.md](CLOUDFLARE-FIX.md)**.
 
 **4. Immich Admin → Settings → Networking:** set server URL to `https://photos.miraz.dev`
 

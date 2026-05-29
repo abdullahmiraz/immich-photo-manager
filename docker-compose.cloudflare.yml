@@ -1,9 +1,10 @@
-# Cloudflare Tunnel — remote HTTPS to Immich (upload optimizer on host :2283).
-# Enable: COMPOSE_PROFILES=optimizer,cloudflare and set CLOUDFLARE_TUNNEL_TOKEN in .env
+# Cloudflare Tunnel — Docker connector (recommended on this PC).
+# Enable: COMPOSE_PROFILES=optimizer,cloudflare + CLOUDFLARE_TUNNEL_TOKEN in .env
 #
-# Zero Trust → Public Hostname → HTTP → immich-upload-optimizer:2283 (same Docker network)
-# Fallback if host :2283 blocked: use internal hostname, not host.docker.internal
-# Docs: docs/REMOTE_ACCESS.md
+# Dashboard → Published application routes → photos.miraz.dev → http://immich-upload-optimizer:2283
+# Requires: Windows Cloudflared service disabled; Happ VPN happ-tun adapter off when VPN closed.
+# Fallback (host connector): scripts/run-cloudflared-windows.ps1 → route http://127.0.0.1:2283
+# Docs: docs/REMOTE_ACCESS.md, docs/CLOUDFLARE-FIX.md
 
 services:
   cloudflared:
@@ -11,9 +12,7 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: immich_cloudflared
     restart: unless-stopped
-    env_file:
-      - .env
-    # http2: works when firewall blocks outbound QUIC/TCP 7844 (common on Windows)
+    # HTTP/2 only — QUIC can flap when Happ VPN TUN adapter is active
     command: tunnel --no-autoupdate --protocol http2 run --token ${CLOUDFLARE_TUNNEL_TOKEN}
     networks:
       - default
