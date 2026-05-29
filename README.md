@@ -49,6 +49,7 @@ First-time and daily commands: **[docs/RECIPES.md](docs/RECIPES.md)**
 | Doc | Contents |
 |-----|----------|
 | [docs/SUITE.md](docs/SUITE.md) | Installer, tools, security overview |
+| [docs/REMOTE_ACCESS.md](docs/REMOTE_ACCESS.md) | Cloudflare Tunnel (photos.miraz.dev) |
 | [docs/RECIPES.md](docs/RECIPES.md) | Step-by-step commands |
 | [docs/RUNBOOK.md](docs/RUNBOOK.md) | Troubleshooting |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Services and networks |

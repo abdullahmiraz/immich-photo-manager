@@ -9,6 +9,7 @@ cd "D:\code\duplicate image remover\immich"
 | Recipe | When |
 |--------|------|
 | [Windows installer & manager](#windows-installer--manager) | setup.exe and 4-tab manager |
+| [Cloudflare Tunnel (miraz.dev)](#cloudflare-tunnel-mirazdev) | Remote HTTPS access |
 | [First-time setup](#first-time-setup) | New install (manual Compose) |
 | [Video cleanup (HandBrake)](#video-cleanup-handbrake) | Pre-import transcode |
 | [Start / stop / status](#start--stop--status) | Daily use |
@@ -41,6 +42,32 @@ cd "D:\code\duplicate image remover\immich"
 Download setup.exe from GitHub Releases. Full guide: **[docs/SUITE.md](SUITE.md)**.
 
 Start Menu: **Start stack** / **Stop stack** / **Update stack images** run `installer\payload\stack-control.ps1`.
+
+---
+
+## Cloudflare Tunnel (miraz.dev)
+
+Full guide: **[docs/REMOTE_ACCESS.md](REMOTE_ACCESS.md)**
+
+**1. In `.env`:**
+
+```env
+CLOUDFLARE_TUNNEL_TOKEN=your-token-from-zero-trust
+COMPOSE_PROFILES=optimizer,cloudflare
+IMMICH_SERVER_URL=https://photos.miraz.dev
+IMMICH_TRUSTED_PROXIES=172.16.0.0/12,10.0.0.0/8,127.0.0.1,::1
+```
+
+**2. Zero Trust → tunnel → Public Hostname:** HTTP → `host.docker.internal:2283` for `photos.miraz.dev`
+
+**3. Start / verify:**
+
+```powershell
+docker compose up -d
+docker compose logs cloudflared --tail 30
+```
+
+**4. Immich Admin → Settings → Networking:** set server URL to `https://photos.miraz.dev`
 
 ---
 

@@ -49,6 +49,7 @@ Root `docker-compose.yml` only `include`s modules — like composing UI from bui
 | **Base** | `docker-compose.yml` | Always — server, ML, Redis, Postgres |
 | **Deduper** | `docker-compose.deduper.yml` | Included by default |
 | **Upload optimizer** | `docker-compose.optimizer.yml` | `--profile optimizer` |
+| **Cloudflare Tunnel** | `docker-compose.cloudflare.yml` | `--profile cloudflare` |
 
 Add-ons sit next to `docker-compose.yml` so `.env` paths (`./library`, `./dedup-data`) resolve correctly.
 

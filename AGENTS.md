@@ -31,6 +31,7 @@ immich/
 ├── docker-compose.yml              ← core Immich
 ├── docker-compose.deduper.yml      ← add-on (included)
 ├── docker-compose.optimizer.yml    ← add-on (--profile optimizer)
+├── docker-compose.cloudflare.yml   ← add-on (--profile cloudflare)
 ├── .env.example
 ├── optimizer-config/tasks.yaml ← used only with --profile optimizer
 ├── docs/
@@ -38,6 +39,7 @@ immich/
 │   ├── RECIPES.md              ← step-by-step commands (no scripts)
 │   ├── RUNBOOK.md
 │   ├── STATE.md
+│   ├── REMOTE_ACCESS.md        ← Cloudflare Tunnel
 │   └── ARCHITECTURE.md
 ├── manager/                    ← WinForms UI (4 companion tabs)
 ├── installer/                  ← Inno Setup (packaging only)

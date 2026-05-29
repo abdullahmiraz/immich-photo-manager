@@ -46,6 +46,7 @@ Source: "{#RepoRoot}\docker-compose.yml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#RepoRoot}\docker-compose.deduper.yml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#RepoRoot}\docker-compose.optimizer.yml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#RepoRoot}\docker-compose.release.yml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#RepoRoot}\docker-compose.cloudflare.yml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#RepoRoot}\.env.example"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#RepoRoot}\optimizer\*"; DestDir: "{app}\optimizer"; Flags: ignoreversion recursesubdirs
 Source: "{#RepoRoot}\optimizer-config\*"; DestDir: "{app}\optimizer-config"; Flags: ignoreversion recursesubdirs

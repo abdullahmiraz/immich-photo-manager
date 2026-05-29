@@ -4,6 +4,7 @@
 # Core Immich stack below. Add-ons (same folder — paths in .env stay ./library, ./data, …):
 #   docker-compose.deduper.yml    — immich-deduper + Qdrant (included by default)
 #   docker-compose.optimizer.yml  — upload compression (--profile optimizer)
+#   docker-compose.cloudflare.yml — Cloudflare Tunnel (--profile cloudflare)
 #
 # Playbooks: docs/RECIPES.md
 #
@@ -17,6 +18,7 @@ name: immich
 include:
   - path: docker-compose.deduper.yml
   - path: docker-compose.optimizer.yml
+  - path: docker-compose.cloudflare.yml
 
 services:
   immich-server:
@@ -35,6 +37,8 @@ services:
       CPU_CORES: ${IMMICH_CPU_CORES:-8}
       CHOKIDAR_USEPOLLING: "true"
       CHOKIDAR_INTERVAL: "1000"
+      # Behind Cloudflare Tunnel / reverse proxy (see docs/REMOTE_ACCESS.md)
+      IMMICH_TRUSTED_PROXIES: ${IMMICH_TRUSTED_PROXIES:-172.16.0.0/12,10.0.0.0/8,127.0.0.1,::1}
     volumes:
       - ${UPLOAD_LOCATION}:/data
       - ${EXTERNAL_LIBRARY_PATH}:/photos-import:ro
