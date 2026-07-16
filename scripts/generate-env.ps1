@@ -1,6 +1,7 @@
+# Generate .env from .env.example with a randomized DB password.
 param(
-    [Parameter(Mandatory = $true)]
-    [string]$InstallDir
+    [string]$InstallDir = (Split-Path $PSScriptRoot -Parent),
+    [switch]$Force
 )
 
 $ErrorActionPreference = "Stop"
@@ -9,6 +10,10 @@ $envFile = Join-Path $InstallDir ".env"
 
 if (!(Test-Path $example)) {
     throw ".env.example not found in $InstallDir"
+}
+
+if ((Test-Path $envFile) -and !$Force) {
+    throw ".env already exists at $envFile — pass -Force to overwrite (this will not update a running stack's DB password)."
 }
 
 function New-RandomPassword {

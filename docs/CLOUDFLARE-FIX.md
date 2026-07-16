@@ -43,7 +43,7 @@ Disable-NetAdapter -Name "happ-tun" -Confirm:$false
 Then:
 
 ```powershell
-cd path\to\immich-photo-manager
+cd path\to\immich
 docker compose --profile cloudflare up -d --force-recreate cloudflared
 docker compose logs cloudflared --tail 40
 ```
@@ -111,7 +111,7 @@ If Docker connector cannot register after disabling `happ-tun`:
 
 ```powershell
 winget install Cloudflare.cloudflared
-cd path\to\immich-photo-manager
+cd path\to\immich
 .\scripts\run-cloudflared-windows.ps1
 ```
 

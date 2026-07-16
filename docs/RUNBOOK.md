@@ -120,7 +120,7 @@ See [.env.example](../.env.example). Official docs: https://docs.immich.app/inst
 |------|---------|
 | `immich-config.json` | Exported settings snapshot |
 | `safe-job-settings.json` | Job concurrency reference for Admin UI |
-| `Screenshot_1.png` | UI reference |
+| `external-library-exclusion-patterns-screenshot.png` | External Library folder/exclusion-pattern UI reference |
 
 Not mounted at runtime.
 

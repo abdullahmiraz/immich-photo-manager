@@ -2,14 +2,10 @@
 
 [immich-go](https://github.com/simulot/immich-go) is AGPL-3.0. It is **not** committed to this repo.
 
-## Windows installer
-
-Setup downloads `immich-go.exe` (pinned version) into this folder on first install.
-
 ## Manual install
 
 1. Open https://github.com/simulot/immich-go/releases  
-2. Download `immich-go_*_windows_amd64.zip` for the version in `.env.example` / installer config.  
+2. Download `immich-go_*_windows_amd64.zip` for your target version.  
 3. Extract `immich-go.exe` here.
 
 ## Example

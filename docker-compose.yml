@@ -17,8 +17,8 @@ name: immich
 
 include:
   - path: docker-compose.deduper.yml
-  - path: docker-compose.optimizer.yml
-  - path: docker-compose.cloudflare.yml
+  # - path: docker-compose.optimizer.yml
+  # - path: docker-compose.cloudflare.yml
 
 services:
   immich-server:
@@ -42,9 +42,8 @@ services:
     volumes:
       - ${UPLOAD_LOCATION}:/data
       - ${EXTERNAL_LIBRARY_PATH}:/photos-import:ro
-    # Host :2283 published by immich-upload-optimizer when COMPOSE_PROFILES=optimizer (see RECIPES).
-    # ports:
-    #   - "${IMMICH_HOST_PORT:-2283}:2283"
+    ports:
+      - "${IMMICH_HOST_PORT:-2283}:2283"
     depends_on:
       redis:
         condition: service_healthy
@@ -105,5 +104,3 @@ services:
     healthcheck:
       disable: false
     mem_limit: ${DB_MEM_LIMIT:-4g}
-    networks:
-      - default

@@ -67,7 +67,7 @@ docker run cloudflare/cloudflared:latest tunnel --no-autoupdate run --token <YOU
 Replace `<YOUR_TOKEN>` with the value from `.env`, and attach the **Immich network** so `immich-upload-optimizer:2283` resolves:
 
 ```powershell
-cd path\to\immich-photo-manager
+cd path\to\immich
 $token = (Get-Content .env | Where-Object { $_ -match '^CLOUDFLARE_TUNNEL_TOKEN=' }) -replace '^CLOUDFLARE_TUNNEL_TOKEN=',''
 
 docker run --rm --network immich_default `
@@ -87,7 +87,7 @@ Use only if Docker `immich_cloudflared` still cannot register after [CLOUDFLARE-
 
 ```powershell
 winget install Cloudflare.cloudflared
-cd path\to\immich-photo-manager
+cd path\to\immich
 .\scripts\run-cloudflared-windows.ps1
 ```
 

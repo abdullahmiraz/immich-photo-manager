@@ -19,12 +19,8 @@ Use official builds only. Do not redistribute builds that include FDK-AAC if lic
 2. From PowerShell:
 
 ```powershell
-cd path\to\immich-photo-manager\tools\video-cleanup
+cd path\to\immich\tools\video-cleanup
 .\optimize.ps1
 ```
 
 3. Upload from the `encoded\` folders via Immich or [immich-go](../immich-go/README.md).
-
-## Installer
-
-The Windows installer copies this folder and opens it from the Start Menu. Install HandBrake CLI manually after setup.

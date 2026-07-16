@@ -6,7 +6,7 @@ Docker-only project. No app source code in-repo—only Compose, env, and data di
 
 1. This file (`AGENTS.md`)
 2. `docs/STATE.md` — current decisions, pitfalls, last-known-good
-3. `docker-compose.yml` + `compose/` + `.env.example` (not `.env` unless user asks)
+3. `docker-compose.yml` + `.env.example` (not `.env` unless user asks)
 4. `docs/RECIPES.md` — copy-paste playbooks
 5. `docs/RUNBOOK.md` — troubleshooting only
 
@@ -20,7 +20,6 @@ Self-hosted **Immich** photo library + **immich-deduper** for visual duplicate f
 |-----|---------|
 | http://localhost:2283 | Immich (via upload optimizer — Caesium on images) |
 | http://localhost:8086 | immich-deduper UI |
-| `ImmichPhotoManager.exe` | 4-tab manager (deduper / optimizer / immich-go / video cleanup) |
 
 ## Repo map (tracked files only)
 
@@ -35,16 +34,14 @@ immich/
 ├── .env.example
 ├── optimizer-config/tasks.yaml ← used only with --profile optimizer
 ├── docs/
-│   ├── SUITE.md                ← installer + 4-tab manager
 │   ├── RECIPES.md              ← step-by-step commands (primary ops)
 │   ├── RUNBOOK.md
 │   ├── STATE.md
 │   ├── REMOTE_ACCESS.md        ← Cloudflare Tunnel
 │   ├── CLOUDFLARE-FIX.md       ← Tunnel troubleshooting (Happ VPN, 1033)
 │   └── ARCHITECTURE.md
-├── scripts/                    ← optional host cloudflared fallback only
-├── manager/                    ← WinForms UI (4 companion tabs)
-├── installer/                  ← Inno Setup (packaging only)
+├── scripts/                    ← host cloudflared fallback, .env generator, optimizer image publish
+├── tools/                      ← immich-go (bulk import), video-cleanup (pre-import transcode)
 └── setup/                      ← BACKUP ONLY, never mount at runtime
 ```
 

@@ -13,7 +13,6 @@ $Image = "abdullahmiraz/immich-upload-optimizer-patched:$Tag"
 Push-Location $Root
 try {
     docker compose build immich-upload-optimizer
-    docker tag "abdullahmiraz/immich-upload-optimizer-patched:$Tag" $Image 2>$null
     docker push $Image
     Write-Host "Published $Image" -ForegroundColor Green
     Write-Host "Set IUO_IMAGE=$Image in .env or use default in .env.example"

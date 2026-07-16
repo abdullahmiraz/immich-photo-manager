@@ -2,7 +2,7 @@
 
 **Immich Photo Manager** is a community Docker Compose distribution. It is **not** affiliated with, endorsed by, or maintained by the Immich project (immich.app).
 
-This repository contains orchestration files (Compose, env templates, installer scripts) licensed under the [MIT License](LICENSE). The applications below are separate projects with their own licenses.
+This repository contains orchestration files (Compose, env templates, scripts) licensed under the [MIT License](LICENSE). The applications below are separate projects with their own licenses.
 
 ## Container images (pulled at runtime)
 
@@ -17,12 +17,12 @@ This repository contains orchestration files (Compose, env templates, installer 
 | Upload optimizer (base) | `ghcr.io/miguelangel-nubla/immich-upload-optimizer` | See upstream | https://github.com/miguelangel-nubla/immich-upload-optimizer |
 | Upload optimizer (patched) | `abdullahmiraz/immich-upload-optimizer-patched` or local build | Patch: MIT (this repo); base: upstream | [`optimizer/Dockerfile`](optimizer/Dockerfile) |
 
-## Optional companion tools (installer or manual download)
+## Optional companion tools (manual download)
 
 | Tool | Distribution | License | Project |
 |------|--------------|---------|---------|
 | immich-go | GitHub release binary | AGPL-3.0 | https://github.com/simulot/immich-go |
-| HandBrake CLI | User/installer download from handbrake.fr | GPLv2 | https://handbrake.fr/ |
+| HandBrake CLI | User download from handbrake.fr | GPLv2 | https://handbrake.fr/ |
 
 When you redistribute or use AGPL software, comply with the respective license (including source availability requirements for network use of modified AGPL programs).
 

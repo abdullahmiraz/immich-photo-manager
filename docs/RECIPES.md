@@ -8,7 +8,6 @@ cd "D:\code\duplicate image remover\immich"
 
 | Recipe | When |
 |--------|------|
-| [Windows installer & manager](#windows-installer--manager) | setup.exe and 4-tab manager |
 | [Cloudflare Tunnel (miraz.dev)](#cloudflare-tunnel-mirazdev) | Remote HTTPS access |
 | [First-time setup](#first-time-setup) | New install (manual Compose) |
 | [Video cleanup (HandBrake)](#video-cleanup-handbrake) | Pre-import transcode |
@@ -25,23 +24,6 @@ cd "D:\code\duplicate image remover\immich"
 | [Reset job settings UI](#reset-job-settings-ui) | Greyed-out Admin job settings |
 | [Update stack (keep containers)](#update-stack-keep-containers) | Upgrade images without removing services |
 | [Docker disk (C: vs D:)](#docker-disk-c-vs-d) | WSL disk bloat, safe cleanup, where data lives |
-
----
-
-## Windows installer & manager
-
-**Immich Photo Manager** (`ImmichPhotoManager.exe`) — four tabs for companion tools; Immich stack controls in the header.
-
-| Tab | Service |
-|-----|---------|
-| Deduper | http://localhost:8086 |
-| Upload optimizer | http://localhost:2283 |
-| immich-go | `tools\immich-go\immich-go.exe` |
-| Video cleanup | `tools\video-cleanup\optimize.ps1` |
-
-Download setup.exe from GitHub Releases. Full guide: **[docs/SUITE.md](SUITE.md)**.
-
-Start Menu: **Start stack** / **Stop stack** / **Update stack images** run `installer\payload\stack-control.ps1`.
 
 ---
 
@@ -76,7 +58,7 @@ If connector flaps: disable Happ **`happ-tun`** adapter when VPN is off — see 
 ## First-time setup
 
 ```powershell
-cd path\to\immich-photo-manager
+cd path\to\immich
 Copy-Item .env.example .env
 # Edit .env: set DB_PASSWORD and PSQL_PASS to the same value (not GENERATE_ON_INSTALL)
 
@@ -216,10 +198,10 @@ docker compose start immich-deduper
 
 ## Video cleanup (HandBrake)
 
-HandBrake CLI is **not** shipped in git or the installer (GPLv2). See [tools/video-cleanup/README.md](../tools/video-cleanup/README.md).
+HandBrake CLI is **not** shipped in git (GPLv2). See [tools/video-cleanup/README.md](../tools/video-cleanup/README.md).
 
 ```powershell
-cd path\to\immich-photo-manager\tools\video-cleanup
+cd path\to\immich\tools\video-cleanup
 # Place HandBrakeCLI.exe in tools\handbrake\ or this folder first
 .\optimize.ps1
 ```

@@ -2,14 +2,11 @@
 
 Last updated: 2026-05-30
 
-## Distribution (Immich Photo Manager)
+## Notes
 
-- **Manager:** `manager/ImmichPhotoManager` — WinForms app, **4 tabs** (deduper, upload optimizer, immich-go, video cleanup); Immich Docker stack in header. Each tab is an independent upstream project.
-- **Installer:** `installer/ImmichPhotoManager.iss` — copies stack, generates `.env` secrets, downloads immich-go, optional `compose up`.
 - **Legal:** MIT (this repo orchestration); see `THIRD_PARTY_NOTICES.md`. HandBrake CLI not redistributed.
 - **IUO image:** default `abdullahmiraz/immich-upload-optimizer-patched:v0.5.3` (Docker Hub); local build via `optimizer/Dockerfile`. Publish: `scripts/publish-optimizer-image.ps1`.
 - **Remote access:** Docker `cloudflared` (`COMPOSE_PROFILES=optimizer,cloudflare`), `--protocol http2`. Route → `http://immich-upload-optimizer:2283`. **Happ VPN:** closing the app leaves `happ-tun` adapter UP with default route — disables Cloudflare from Docker until adapter is disabled. Windows `Cloudflared` service must stay **disabled** (one connector only). See `docs/REMOTE_ACCESS.md`, `docs/CLOUDFLARE-FIX.md`.
-- **Release CI:** tag `v*` → `.github/scripts/build-release.ps1`. immich-go asset: `immich-go_Windows_x86_64.zip` (see `installer/config.json`). Pre-tag: `verify-release-prereqs.ps1`.
 
 ## Current stack (intended)
 
